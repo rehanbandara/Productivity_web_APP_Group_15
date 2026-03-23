@@ -1,0 +1,474 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  List,
+  ListItem,
+  IconButton,
+  LinearProgress
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CompleteIcon
+} from '@mui/icons-material';
+
+const Goals = () => {
+  const [goals, setGoals] = useState([
+    { 
+      id: 1, 
+      title: 'Complete React Project', 
+      description: 'Finish the frontend for the productivity app',
+      priority: 'high', 
+      progress: 75, 
+      completed: false, 
+      dueDate: '2024-03-25',
+      status: 'in-progress',
+      category: 'Work'
+    },
+    { 
+      id: 2, 
+      title: 'Study JavaScript 2 hours', 
+      description: 'Complete JavaScript advanced concepts',
+      priority: 'medium', 
+      progress: 50, 
+      completed: false, 
+      dueDate: '2024-03-24',
+      status: 'in-progress',
+      category: 'Learning'
+    },
+    { 
+      id: 3, 
+      title: 'Read Documentation', 
+      description: 'Read React documentation for new features',
+      priority: 'low', 
+      progress: 25, 
+      completed: false, 
+      dueDate: '2024-03-26',
+      status: 'not-started',
+      category: 'Learning'
+    },
+    { 
+      id: 4, 
+      title: 'Exercise Routine', 
+      description: 'Complete 30 minutes of workout',
+      priority: 'medium', 
+      progress: 100, 
+      completed: true, 
+      dueDate: '2024-03-23',
+      status: 'completed',
+      category: 'Health'
+    }
+  ]);
+
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [newGoal, setNewGoal] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    dueDate: '',
+    category: 'Personal'
+  });
+
+  const [filter, setFilter] = useState('all');
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    notStarted: 0
+  });
+
+  const updateStats = useCallback(() => {
+    const total = goals.length;
+    const completed = goals.filter(goal => goal.status === 'completed').length;
+    const inProgress = goals.filter(goal => goal.status === 'in-progress').length;
+    const notStarted = goals.filter(goal => goal.status === 'not-started').length;
+    
+    setStats({ total, completed, inProgress, notStarted });
+  }, [goals]);
+
+  useEffect(() => {
+    updateStats();
+  }, [goals, updateStats]);
+
+  const handleCreateGoal = () => {
+    if (newGoal.title.trim()) {
+      const goal = {
+        id: Date.now(),
+        title: newGoal.title,
+        description: newGoal.description,
+        priority: newGoal.priority,
+        progress: 0,
+        completed: false,
+        dueDate: newGoal.dueDate,
+        status: 'not-started',
+        category: newGoal.category
+      };
+      setGoals([...goals, goal]);
+      setNewGoal({ title: '', description: '', priority: 'medium', dueDate: '', category: 'Personal' });
+      setOpenDialog(false);
+    }
+  };
+
+  const handleUpdateGoal = (updatedGoal) => {
+    setGoals(goals.map(goal => 
+      goal.id === updatedGoal.id ? updatedGoal : goal
+    ));
+    setEditingGoal(null);
+    setOpenDialog(false);
+  };
+
+  const handleDeleteGoal = (goalId) => {
+    setGoals(goals.filter(goal => goal.id !== goalId));
+  };
+
+  const handleEditGoal = (goal) => {
+    setEditingGoal(goal);
+    setNewGoal({
+      title: goal.title,
+      description: goal.description,
+      priority: goal.priority,
+      dueDate: goal.dueDate,
+      category: goal.category
+    });
+    setOpenDialog(true);
+  };
+
+  const handleStatusChange = (goalId, newStatus) => {
+    setGoals(goals.map(goal => {
+      if (goal.id === goalId) {
+        let newProgress = goal.progress;
+        if (newStatus === 'completed') {
+          newProgress = 100;
+        } else if (newStatus === 'in-progress' && goal.progress === 0) {
+          newProgress = 25;
+        }
+        
+        return {
+          ...goal,
+          status: newStatus,
+          progress: newProgress,
+          completed: newStatus === 'completed'
+        };
+      }
+      return goal;
+    }));
+  };
+
+  const getFilteredGoals = () => {
+    if (filter === 'all') return goals;
+    return goals.filter(goal => goal.status === filter);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return 'success';
+      case 'in-progress': return 'warning';
+      case 'not-started': return 'default';
+      default: return 'default';
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'error';
+      case 'medium': return 'warning';
+      case 'low': return 'info';
+      default: return 'default';
+    }
+  };
+
+  const filteredGoals = getFilteredGoals();
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">Goals Management</Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setEditingGoal(null);
+              setNewGoal({ title: '', description: '', priority: 'medium', dueDate: '', category: 'Personal' });
+              setOpenDialog(true);
+            }}
+          >
+            Add Goal
+          </Button>
+        </Box>
+
+        {/* Statistics Cards */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h4" color="primary">{stats.total}</Typography>
+                <Typography variant="body2" color="textSecondary">Total Goals</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h4" color="success.main">{stats.completed}</Typography>
+                <Typography variant="body2" color="textSecondary">Completed</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h4" color="warning.main">{stats.inProgress}</Typography>
+                <Typography variant="body2" color="textSecondary">In Progress</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h4" color="info.main">{stats.notStarted}</Typography>
+                <Typography variant="body2" color="textSecondary">Not Started</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Filter Buttons */}
+        <Box sx={{ mb: 3 }}>
+          <Button
+            variant={filter === 'all' ? 'contained' : 'outlined'}
+            onClick={() => setFilter('all')}
+            sx={{ mr: 1 }}
+          >
+            All ({stats.total})
+          </Button>
+          <Button
+            variant={filter === 'not-started' ? 'contained' : 'outlined'}
+            onClick={() => setFilter('not-started')}
+            sx={{ mr: 1 }}
+          >
+            Not Started ({stats.notStarted})
+          </Button>
+          <Button
+            variant={filter === 'in-progress' ? 'contained' : 'outlined'}
+            onClick={() => setFilter('in-progress')}
+            sx={{ mr: 1 }}
+          >
+            In Progress ({stats.inProgress})
+          </Button>
+          <Button
+            variant={filter === 'completed' ? 'contained' : 'outlined'}
+            onClick={() => setFilter('completed')}
+          >
+            Completed ({stats.completed})
+          </Button>
+        </Box>
+
+        {/* Goals List */}
+        <Paper sx={{ p: 2 }}>
+          <List>
+            {filteredGoals.map((goal) => (
+              <ListItem key={goal.id} sx={{ mb: 2, p: 0 }}>
+                <Card sx={{ width: '100%' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" gutterBottom>{goal.title}</Typography>
+                        <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                          {goal.description}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                          <Chip 
+                            label={goal.status.replace('-', ' ')} 
+                            color={getStatusColor(goal.status)}
+                            size="small"
+                          />
+                          <Chip 
+                            label={goal.priority} 
+                            color={getPriorityColor(goal.priority)}
+                            size="small"
+                          />
+                          <Chip 
+                            label={goal.category} 
+                            variant="outlined"
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                      <Box>
+                        <IconButton 
+                          onClick={() => handleEditGoal(goal)}
+                          size="small"
+                          sx={{ mr: 1 }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          color="error"
+                          size="small"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <ScheduleIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Due: {goal.dueDate}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" gutterBottom>
+                        Progress: {goal.progress}%
+                      </Typography>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={goal.progress} 
+                        sx={{ mb: 1 }}
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleStatusChange(goal.id, 'not-started')}
+                        disabled={goal.status === 'not-started'}
+                      >
+                        Not Started
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleStatusChange(goal.id, 'in-progress')}
+                        disabled={goal.status === 'in-progress'}
+                      >
+                        In Progress
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleStatusChange(goal.id, 'completed')}
+                        disabled={goal.status === 'completed'}
+                        startIcon={<CompleteIcon />}
+                      >
+                        Complete
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      </Box>
+
+      {/* Add/Edit Goal Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Goal Title"
+            fullWidth
+            variant="outlined"
+            value={newGoal.title}
+            onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          
+          <TextField
+            margin="dense"
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            variant="outlined"
+            value={newGoal.description}
+            onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Priority Level</InputLabel>
+                <Select
+                  value={newGoal.priority}
+                  onChange={(e) => setNewGoal({ ...newGoal, priority: e.target.value })}
+                >
+                  <MenuItem value="high">High Priority</MenuItem>
+                  <MenuItem value="medium">Medium Priority</MenuItem>
+                  <MenuItem value="low">Low Priority</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={newGoal.category}
+                  onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
+                >
+                  <MenuItem value="Work">Work</MenuItem>
+                  <MenuItem value="Personal">Personal</MenuItem>
+                  <MenuItem value="Learning">Learning</MenuItem>
+                  <MenuItem value="Health">Health</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+          
+          <TextField
+            margin="dense"
+            label="Due Date"
+            type="date"
+            fullWidth
+            variant="outlined"
+            value={newGoal.dueDate}
+            onChange={(e) => setNewGoal({ ...newGoal, dueDate: e.target.value })}
+            InputLabelProps={{
+              shrink: true,
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={editingGoal ? () => handleUpdateGoal({ ...editingGoal, ...newGoal }) : handleCreateGoal} 
+            variant="contained"
+          >
+            {editingGoal ? 'Update Goal' : 'Create Goal'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+};
+
+export default Goals;
