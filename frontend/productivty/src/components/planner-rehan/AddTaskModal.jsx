@@ -8,27 +8,27 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  Paper,
   Stack,
   TextField,
   Typography,
-  Paper,
 } from "@mui/material";
 import dayjs from "dayjs";
 
 import useTaskStore from "../../store/taskStore";
-import { getEisenhowerMatrix } from "./utils/priorityUtils";
+import { getTaskAnalysis } from "./utils/priorityUtils";
 
 const EMPTY_FORM = {
   title: "",
   plannedDate: "",
   deadline: "",
-  importance: "", // required for matrix calculation
-  effort: "", // required for matrix calculation (hours)
+  importance: "",
+  effort: "",
   category: "",
   notes: "",
 };
 
-function quadrantStyle(quadrant, active) {
+function quadrantCardSx({ active, quadrant }) {
   const base = {
     p: 1.5,
     borderRadius: 2,
@@ -53,7 +53,7 @@ function quadrantStyle(quadrant, active) {
 
 function QuadrantCard({ title, subtitle, active, quadrant }) {
   return (
-    <Box sx={quadrantStyle(quadrant, active)}>
+    <Box sx={quadrantCardSx({ active, quadrant })}>
       <Typography variant="subtitle2" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
         {title}
       </Typography>
@@ -62,6 +62,37 @@ function QuadrantCard({ title, subtitle, active, quadrant }) {
       </Typography>
     </Box>
   );
+}
+
+function labelForQuadrant(q) {
+  switch (q) {
+    case "Q1":
+      return "Do now";
+    case "Q2":
+      return "Schedule";
+    case "Q3":
+      return "Delegate";
+    case "Q4":
+      return "Eliminate";
+    default:
+      return "Not calculated";
+  }
+}
+
+function chipMeta(analysis) {
+  if (!analysis.isCalculated) {
+    return { label: "Not calculated", color: "default", variant: "outlined" };
+  }
+
+  const map = {
+    Q1: { color: "error", variant: "filled" },
+    Q2: { color: "success", variant: "filled" },
+    Q3: { color: "warning", variant: "filled" },
+    Q4: { color: "default", variant: "filled" },
+  };
+
+  const meta = map[analysis.matrixQuadrant] || { color: "default", variant: "filled" };
+  return { label: labelForQuadrant(analysis.matrixQuadrant), ...meta };
 }
 
 function AddTaskModal({ open, onClose, task, selectedDate }) {
@@ -78,7 +109,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
     return d.isValid() ? d.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
   }, [selectedDate]);
 
-  // Workload on the planned day (for urgency comparison with other tasks)
+  // Workload hours on the planned day (used for feasibility + urgency comparison)
   const workloadHours = useMemo(() => {
     const planned = formData.plannedDate || selectedPlannedDate;
     if (!planned) return 0;
@@ -111,69 +142,51 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
     }
   }, [open, task, selectedPlannedDate]);
 
-  // Eisenhower matrix calculation:
-  // Only calculated if importance + effort + deadline exist.
-  const matrix = useMemo(() => {
-    return getEisenhowerMatrix({
+  // Live analysis preview — ONLY calculates when (importance + effort + deadline) exist
+  const analysis = useMemo(() => {
+    return getTaskAnalysis({
       importance: formData.importance,
       effortHours: formData.effort,
       deadline: formData.deadline,
       workloadHours,
       today: todayLocal,
+      dailyCapacityHours: 5, // student practical default (can be user setting later)
     });
   }, [formData.deadline, formData.effort, formData.importance, workloadHours, todayLocal]);
 
-  const matrixChip = useMemo(() => {
-    if (!matrix.isCalculated) {
-      return { label: "Not calculated", color: "default", variant: "outlined" };
-    }
-
-    // Q1 red, Q2 green, Q3 orange, Q4 neutral
-    const map = {
-      Q1: { color: "error", variant: "filled" },
-      Q2: { color: "success", variant: "filled" },
-      Q3: { color: "warning", variant: "filled" },
-      Q4: { color: "default", variant: "filled" },
-    };
-
-    const meta = map[matrix.quadrant] || { color: "default", variant: "filled" };
-    return { label: matrix.label, ...meta };
-  }, [matrix]);
+  const resultChip = useMemo(() => chipMeta(analysis), [analysis]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setFormData((p) => ({ ...p, [name]: value }));
+    setErrors((p) => ({ ...p, [name]: undefined }));
   };
 
   const validate = () => {
     const newErrors = {};
 
     if (!formData.title.trim()) newErrors.title = "Task title is required";
-
     if (!formData.plannedDate) newErrors.plannedDate = "Planned date is required";
 
-    // Deadline OPTIONAL overall, but required if user wants matrix classification
-    // (Your requirement: algorithm needs deadline + effort + importance)
-    if (formData.deadline) {
-      if (formData.deadline < todayLocal) newErrors.deadline = "Deadline cannot be in the past";
+    // Deadline optional, but if set, must not be in the past
+    if (formData.deadline && formData.deadline < todayLocal) {
+      newErrors.deadline = "Deadline cannot be in the past";
     }
 
-    // Importance optional for saving the task, but validate if user entered it
+    // Validate ranges if user typed values
     if (formData.importance !== "" && formData.importance !== null) {
       const n = Number(formData.importance);
       if (!Number.isFinite(n) || n < 1 || n > 10) {
-        newErrors.importance = "Importance must be between 1 and 10 (1 = highest)";
+        newErrors.importance = "Importance must be 1–10 (1 = highest)";
       }
     }
 
-    // Effort optional for saving the task, but validate if user entered it
     if (formData.effort !== "" && formData.effort !== null) {
       const n = Number(formData.effort);
       if (!Number.isFinite(n) || n <= 0) {
         newErrors.effort = "Effort must be a positive number (hours)";
       } else if (n > 24) {
-        newErrors.effort = "Effort seems too high (max 24 hours)";
+        newErrors.effort = "Effort is too high (max 24 hours)";
       }
     }
 
@@ -188,21 +201,29 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
   const handleSubmit = () => {
     if (!validate()) return;
 
-    // Store matrix results only when calculated.
-    const matrixFields = matrix.isCalculated
+    // Store calculated intelligence only when available.
+    const intelligenceFields = analysis.isCalculated
       ? {
-        matrixQuadrant: matrix.quadrant,
-        matrixLabel: matrix.label,
-        matrixSortRank: matrix.sortRank,
-        isImportant: matrix.isImportant,
-        isUrgent: matrix.isUrgent,
+        isImportant: analysis.isImportant,
+        isUrgent: analysis.isUrgent,
+        isFeasibleToday: analysis.isFeasibleToday,
+        matrixQuadrant: analysis.matrixQuadrant,
+        matrixLabel: analysis.matrixLabel,
+        matrixSortRank: analysis.matrixSortRank,
+        priorityScore: analysis.priorityScore,
+        recommendedAction: analysis.recommendedAction,
+        reason: analysis.reason,
       }
       : {
+        isImportant: null,
+        isUrgent: null,
+        isFeasibleToday: null,
         matrixQuadrant: null,
         matrixLabel: "Not calculated",
         matrixSortRank: 999,
-        isImportant: null,
-        isUrgent: null,
+        priorityScore: null,
+        recommendedAction: "Add importance, effort, and deadline to calculate.",
+        reason: "Missing one or more fields: importance, effort, deadline.",
       };
 
     if (isEditMode) {
@@ -215,7 +236,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
         notes: formData.notes,
         importance: formData.importance,
         effort: formData.effort,
-        ...matrixFields,
+        ...intelligenceFields,
       });
     } else {
       addTask({
@@ -228,7 +249,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
         importance: formData.importance,
         effort: formData.effort,
         status: "todo",
-        ...matrixFields,
+        ...intelligenceFields,
       });
     }
 
@@ -256,8 +277,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
               Basics
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Plan the task for a day. Add importance, effort and deadline to calculate the
-              Eisenhower quadrant.
+              Add importance, effort and a deadline to generate the matrix result.
             </Typography>
           </Box>
 
@@ -299,7 +319,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
             />
 
             <TextField
-              label="Deadline (required for matrix)"
+              label="Deadline (needed for matrix)"
               type="date"
               fullWidth
               InputLabelProps={{ shrink: true }}
@@ -307,7 +327,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
               value={formData.deadline}
               onChange={handleChange}
               error={Boolean(errors.deadline)}
-              helperText={errors.deadline || "Add a deadline to calculate urgency."}
+              helperText={errors.deadline || "Set a real due date to calculate urgency."}
             />
           </Stack>
 
@@ -316,10 +336,10 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
           {/* Eisenhower inputs */}
           <Box>
             <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
-              Eisenhower inputs
+              Priority inputs
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-              Importance uses your scale: <strong>1 = highest</strong>, 10 = lowest.
+              Importance scale: <strong>1 = most important</strong>, 10 = least important.
             </Typography>
           </Box>
 
@@ -349,7 +369,7 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
             />
           </Stack>
 
-          {/* Result summary */}
+          {/* Result + matrix */}
           <Paper
             elevation={0}
             sx={{
@@ -368,22 +388,33 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
             >
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
-                  Matrix result
+                  Result
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                  {matrix.reason}
+                  {analysis.reason}
                 </Typography>
+                {analysis.isCalculated ? (
+                  <Typography variant="body2" sx={{ mt: 0.75, fontWeight: 800 }}>
+                    Recommended: {analysis.recommendedAction}
+                  </Typography>
+                ) : null}
               </Box>
 
-              <Chip
-                label={matrixChip.label}
-                color={matrixChip.color}
-                variant={matrixChip.variant}
-                sx={{ fontWeight: 900 }}
-              />
+              <Stack alignItems="flex-end" spacing={1}>
+                <Chip
+                  label={resultChip.label}
+                  color={resultChip.color}
+                  variant={resultChip.variant}
+                  sx={{ fontWeight: 900 }}
+                />
+                {analysis.isCalculated ? (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                    Score: {analysis.priorityScore}/100
+                  </Typography>
+                ) : null}
+              </Stack>
             </Stack>
 
-            {/* Graphical 2x2 matrix */}
             <Box
               sx={{
                 mt: 2,
@@ -394,34 +425,54 @@ function AddTaskModal({ open, onClose, task, selectedDate }) {
             >
               <QuadrantCard
                 quadrant="Q1"
-                active={matrix.isCalculated && matrix.quadrant === "Q1"}
+                active={analysis.isCalculated && analysis.matrixQuadrant === "Q1"}
                 title="Do now"
                 subtitle="Important + Urgent"
               />
               <QuadrantCard
                 quadrant="Q2"
-                active={matrix.isCalculated && matrix.quadrant === "Q2"}
+                active={analysis.isCalculated && analysis.matrixQuadrant === "Q2"}
                 title="Schedule"
                 subtitle="Important + Not urgent"
               />
               <QuadrantCard
                 quadrant="Q3"
-                active={matrix.isCalculated && matrix.quadrant === "Q3"}
+                active={analysis.isCalculated && analysis.matrixQuadrant === "Q3"}
                 title="Delegate"
                 subtitle="Not important + Urgent"
               />
               <QuadrantCard
                 quadrant="Q4"
-                active={matrix.isCalculated && matrix.quadrant === "Q4"}
+                active={analysis.isCalculated && analysis.matrixQuadrant === "Q4"}
                 title="Eliminate"
                 subtitle="Not important + Not urgent"
               />
             </Box>
+
+            {analysis.isCalculated && analysis.isFeasibleToday === false ? (
+              <Box
+                sx={{
+                  mt: 1.5,
+                  p: 1.25,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "warning.main",
+                  bgcolor: "rgba(245,124,0,0.08)",
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                  Workload warning
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                  This task may not fit into today’s capacity. Consider splitting it or moving a
+                  lower-priority task.
+                </Typography>
+              </Box>
+            ) : null}
           </Paper>
 
           <Divider />
 
-          {/* Notes */}
           <TextField
             label="Notes"
             placeholder="Optional notes…"
