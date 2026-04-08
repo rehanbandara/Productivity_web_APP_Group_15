@@ -30,55 +30,12 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CompleteIcon
 } from '@mui/icons-material';
+import { goalsService } from '../../services';
 
 const Goals = () => {
-  const [goals, setGoals] = useState([
-    { 
-      id: 1, 
-      title: 'Complete React Project', 
-      description: 'Finish the frontend for the productivity app',
-      priority: 'high', 
-      progress: 75, 
-      completed: false, 
-      dueDate: '2024-03-25',
-      status: 'in-progress',
-      category: 'Work'
-    },
-    { 
-      id: 2, 
-      title: 'Study JavaScript 2 hours', 
-      description: 'Complete JavaScript advanced concepts',
-      priority: 'medium', 
-      progress: 50, 
-      completed: false, 
-      dueDate: '2024-03-24',
-      status: 'in-progress',
-      category: 'Learning'
-    },
-    { 
-      id: 3, 
-      title: 'Read Documentation', 
-      description: 'Read React documentation for new features',
-      priority: 'low', 
-      progress: 25, 
-      completed: false, 
-      dueDate: '2024-03-26',
-      status: 'not-started',
-      category: 'Learning'
-    },
-    { 
-      id: 4, 
-      title: 'Exercise Routine', 
-      description: 'Complete 30 minutes of workout',
-      priority: 'medium', 
-      progress: 100, 
-      completed: true, 
-      dueDate: '2024-03-23',
-      status: 'completed',
-      category: 'Health'
-    }
-  ]);
-
+  const [goals, setGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
   const [newGoal, setNewGoal] = useState({
@@ -94,8 +51,28 @@ const Goals = () => {
     total: 0,
     completed: 0,
     inProgress: 0,
-    notStarted: 0
+    notStarted: 0,
+    overallProgressPercentage: 0
   });
+
+  // Load goals from API
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  const loadGoals = async () => {
+    try {
+      setLoading(true);
+      const goalsData = await goalsService.getGoals();
+      setGoals(goalsData);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to load goals:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateStats = useCallback(() => {
     const total = goals.length;
@@ -121,22 +98,28 @@ const Goals = () => {
     updateStats();
   }, [goals, updateStats]);
 
-  const handleCreateGoal = () => {
+  const handleCreateGoal = async () => {
     if (isFormValid()) {
-      const goal = {
-        id: Date.now(),
-        title: newGoal.title,
-        description: newGoal.description,
-        priority: newGoal.priority,
-        progress: 0,
-        completed: false,
-        dueDate: newGoal.dueDate,
-        status: 'not-started',
-        category: newGoal.category
-      };
-      setGoals([...goals, goal]);
-      setNewGoal({ title: '', description: '', priority: 'medium', dueDate: '', category: 'Personal' });
-      setOpenDialog(false);
+      try {
+        const goalData = {
+          title: newGoal.title,
+          description: newGoal.description,
+          priority: newGoal.priority,
+          progress: 0,
+          completed: false,
+          dueDate: newGoal.dueDate,
+          status: 'not-started',
+          category: newGoal.category
+        };
+        
+        const createdGoal = await goalsService.createGoal(goalData);
+        setGoals([...goals, createdGoal]);
+        setNewGoal({ title: '', description: '', priority: 'medium', dueDate: '', category: 'Personal' });
+        setOpenDialog(false);
+      } catch (err) {
+        setError(err.message);
+        console.error('Failed to create goal:', err);
+      }
     }
   };
 
@@ -151,16 +134,33 @@ const Goals = () => {
     );
   };
 
-  const handleUpdateGoal = (updatedGoal) => {
-    setGoals(goals.map(goal => 
-      goal.id === updatedGoal.id ? updatedGoal : goal
-    ));
-    setEditingGoal(null);
-    setOpenDialog(false);
+  const handleUpdateGoal = async (updatedGoal) => {
+    try {
+      const goalData = {
+        ...updatedGoal,
+        ...newGoal
+      };
+      
+      const updated = await goalsService.updateGoal(updatedGoal.id, goalData);
+      setGoals(goals.map(goal => 
+        goal.id === updatedGoal.id ? updated : goal
+      ));
+      setEditingGoal(null);
+      setOpenDialog(false);
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to update goal:', err);
+    }
   };
 
-  const handleDeleteGoal = (goalId) => {
-    setGoals(goals.filter(goal => goal.id !== goalId));
+  const handleDeleteGoal = async (goalId) => {
+    try {
+      await goalsService.deleteGoal(goalId);
+      setGoals(goals.filter(goal => goal.id !== goalId));
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to delete goal:', err);
+    }
   };
 
   const handleEditGoal = (goal) => {
@@ -201,8 +201,18 @@ const Goals = () => {
     }));
   };
 
-  const incrementProgress = (goalId) => {
-    handleStatusChange(goalId, 'increment');
+  const incrementProgress = async (goalId) => {
+    try {
+      const goal = goals.find(g => g.id === goalId);
+      if (goal) {
+        const newProgress = Math.min(goal.progress + 25, 100);
+        const updatedGoal = await goalsService.updateGoalProgress(goalId, newProgress);
+        setGoals(goals.map(g => g.id === goalId ? updatedGoal : g));
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to update progress:', err);
+    }
   };
 
   const getFilteredGoals = () => {
@@ -248,6 +258,32 @@ const Goals = () => {
           </Button>
         </Box>
 
+        {/* Error Alert */}
+        {error && (
+          <Box sx={{ mb: 3 }}>
+            <Typography color="error" sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+              Error: {error}
+              <Button 
+                size="small" 
+                onClick={() => setError(null)}
+                sx={{ ml: 2 }}
+              >
+                Dismiss
+              </Button>
+            </Typography>
+          </Box>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+            <Typography>Loading goals...</Typography>
+          </Box>
+        )}
+
+        {/* Content */}
+        {!loading && !error && (
+          <>
         {/* Statistics Cards */}
         <Grid container spacing={3} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} md={3}>
@@ -466,7 +502,6 @@ const Goals = () => {
             ))}
           </List>
         </Paper>
-      </Box>
 
       {/* Add/Edit Goal Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
@@ -580,6 +615,9 @@ const Goals = () => {
           </Button>
         </DialogActions>
       </Dialog>
+          </>
+        )}
+      </Box>
     </Container>
   );
 };
