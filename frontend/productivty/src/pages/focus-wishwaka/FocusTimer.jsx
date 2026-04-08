@@ -36,7 +36,7 @@ import {
 const FocusTimer = () => {
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
-  const [timeLeft, setTimeLeft] = useState(workDuration * 60);
+  const [timeLeft, setTimeLeft] = useState(workDuration * 60); //countdown logic
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [sessions, setSessions] = useState([]);

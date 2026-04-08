@@ -122,7 +122,7 @@ const Goals = () => {
   }, [goals, updateStats]);
 
   const handleCreateGoal = () => {
-    if (newGoal.title.trim()) {
+    if (isFormValid()) {
       const goal = {
         id: Date.now(),
         title: newGoal.title,
@@ -138,6 +138,17 @@ const Goals = () => {
       setNewGoal({ title: '', description: '', priority: 'medium', dueDate: '', category: 'Personal' });
       setOpenDialog(false);
     }
+  };
+
+  const isFormValid = () => {
+    return (
+      newGoal.title.trim() &&
+      newGoal.description.trim() &&
+      newGoal.priority &&
+      newGoal.category &&
+      newGoal.dueDate &&
+      new Date(newGoal.dueDate) >= new Date().setHours(0,0,0,0)
+    );
   };
 
   const handleUpdateGoal = (updatedGoal) => {
@@ -470,6 +481,9 @@ const Goals = () => {
             value={newGoal.title}
             onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
             sx={{ mb: 2 }}
+            required
+            error={!newGoal.title.trim()}
+            helperText={!newGoal.title.trim() ? "Goal title is required" : ""}
           />
           
           <TextField
@@ -482,28 +496,38 @@ const Goals = () => {
             value={newGoal.description}
             onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
             sx={{ mb: 2 }}
+            required
+            error={!newGoal.description.trim()}
+            helperText={!newGoal.description.trim() ? "Description is required" : ""}
           />
           
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth sx={{ mb: 2 }}>
+              <FormControl fullWidth sx={{ mb: 2 }} required error={!newGoal.priority}>
                 <InputLabel>Priority Level</InputLabel>
                 <Select
                   value={newGoal.priority}
                   onChange={(e) => setNewGoal({ ...newGoal, priority: e.target.value })}
+                  error={!newGoal.priority}
                 >
                   <MenuItem value="high">High Priority</MenuItem>
                   <MenuItem value="medium">Medium Priority</MenuItem>
                   <MenuItem value="low">Low Priority</MenuItem>
                 </Select>
+                {!newGoal.priority && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                    Priority level is required
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth sx={{ mb: 2 }}>
+              <FormControl fullWidth sx={{ mb: 2 }} required error={!newGoal.category}>
                 <InputLabel>Category</InputLabel>
                 <Select
                   value={newGoal.category}
                   onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
+                  error={!newGoal.category}
                 >
                   <MenuItem value="Work">Work</MenuItem>
                   <MenuItem value="Personal">Personal</MenuItem>
@@ -511,6 +535,11 @@ const Goals = () => {
                   <MenuItem value="Health">Health</MenuItem>
                   <MenuItem value="Other">Other</MenuItem>
                 </Select>
+                {!newGoal.category && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                    Category is required
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
           </Grid>
@@ -526,6 +555,18 @@ const Goals = () => {
             InputLabelProps={{
               shrink: true,
             }}
+            required
+            error={!newGoal.dueDate || new Date(newGoal.dueDate) < new Date().setHours(0,0,0,0)}
+            helperText={
+              !newGoal.dueDate 
+                ? "Due date is required" 
+                : new Date(newGoal.dueDate) < new Date().setHours(0,0,0,0)
+                ? "Due date cannot be in the past"
+                : ""
+            }
+            inputProps={{
+              min: new Date().toISOString().split('T')[0]
+            }}
           />
         </DialogContent>
         <DialogActions>
@@ -533,6 +574,7 @@ const Goals = () => {
           <Button 
             onClick={editingGoal ? () => handleUpdateGoal({ ...editingGoal, ...newGoal }) : handleCreateGoal} 
             variant="contained"
+            disabled={!isFormValid()}
           >
             {editingGoal ? 'Update Goal' : 'Create Goal'}
           </Button>
