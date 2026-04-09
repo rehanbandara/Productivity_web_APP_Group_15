@@ -1,4 +1,5 @@
 const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+const YOUTUBE_URL_REGEX = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
 
 export const validateNote = ({ title, contentType, topicId }) => {
   const errors = {};
@@ -63,4 +64,18 @@ export const validateTopic = ({ name, color, description }) => {
   }
 
   return errors;
+};
+
+export const validateYouTubeUrl = (youtubeUrl) => {
+  const trimmedUrl = youtubeUrl?.trim() || '';
+
+  if (!trimmedUrl) {
+    return 'Please enter a YouTube URL';
+  }
+
+  if (!YOUTUBE_URL_REGEX.test(trimmedUrl)) {
+    return 'Invalid YouTube URL format';
+  }
+
+  return '';
 };

@@ -42,6 +42,7 @@ import {
   WorkspaceMetricCard,
   WorkspaceSection,
 } from '../components/workspace/WorkspaceChrome';
+import { validateYouTubeUrl } from '../utils/validation';
 
 const YOUTUBE_RE = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
 
@@ -268,12 +269,11 @@ export default function VideoNotesPage() {
 
   const handleGenerate = async () => {
     const trimmed = youtubeUrl.trim();
-    if (!trimmed) {
-      setUrlError('Please enter a YouTube URL');
-      return;
-    }
-    if (!extractVideoId(trimmed)) {
-      setUrlError('Invalid YouTube URL format');
+    const validationError = validateYouTubeUrl(trimmed);
+
+    if (validationError) {
+      setUrlError(validationError);
+      urlInputRef.current?.focus();
       return;
     }
 
@@ -356,7 +356,7 @@ export default function VideoNotesPage() {
           />
 
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <WorkspaceMetricCard
                 label="Video Notes"
                 value={generatedItems.length}
@@ -365,7 +365,7 @@ export default function VideoNotesPage() {
                 accent="#dc2626"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <WorkspaceMetricCard
                 label="Summaries Ready"
                 value={summarizedCount}
@@ -374,7 +374,7 @@ export default function VideoNotesPage() {
                 accent="#6366f1"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <WorkspaceMetricCard
                 label="Input Status"
                 value={inputState}
@@ -397,9 +397,13 @@ export default function VideoNotesPage() {
                   placeholder="https://www.youtube.com/watch?v=..."
                   value={youtubeUrl}
                   onChange={(event) => {
-                    setYoutubeUrl(event.target.value);
-                    setUrlError('');
+                    const nextUrl = event.target.value;
+                    setYoutubeUrl(nextUrl);
+                    if (urlError) {
+                      setUrlError(validateYouTubeUrl(nextUrl));
+                    }
                   }}
+                  onBlur={() => setUrlError(validateYouTubeUrl(youtubeUrl))}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !generating) {
                       handleGenerate();
@@ -425,7 +429,7 @@ export default function VideoNotesPage() {
                 <Button
                   variant="contained"
                   onClick={handleGenerate}
-                  disabled={generating || !youtubeUrl.trim()}
+                  disabled={generating}
                   startIcon={generating ? <CircularProgress size={18} color="inherit" /> : <AutoAwesome />}
                   sx={{
                     minWidth: { xs: '100%', md: 180 },
@@ -454,7 +458,7 @@ export default function VideoNotesPage() {
                   { step: '2', label: 'AI Processes', desc: 'Transcript and note structure are generated.' },
                   { step: '3', label: 'Study Ready', desc: 'The note becomes editable and reusable elsewhere.' },
                 ].map((item) => (
-                  <Grid item xs={12} md={4} key={item.step}>
+                  <Grid size={{ xs: 12, md: 4 }} key={item.step}>
                     <Box
                       sx={{
                         p: 1.75,

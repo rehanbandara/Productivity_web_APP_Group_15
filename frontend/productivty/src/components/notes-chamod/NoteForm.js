@@ -42,6 +42,7 @@ export default function NoteForm({
 
   const handleBlur = (field) => () => {
     setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors(validateNote(values));
   };
 
   const handleSubmit = (e) => {
@@ -68,9 +69,9 @@ export default function NoteForm({
         onBlur={handleBlur('title')}
         error={touched.title && !!errors.title}
         helperText={
-          (touched.title && errors.title) || `${values.title.length} / 255 characters`
+          (touched.title && errors.title) || ${values.title.length} / 100 characters
         }
-        inputProps={{ maxLength: 255 }}
+        inputProps={{ maxLength: 100 }}
         required
         fullWidth
         InputProps={{

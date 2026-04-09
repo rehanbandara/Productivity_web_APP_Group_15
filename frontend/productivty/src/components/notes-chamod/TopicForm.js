@@ -31,6 +31,7 @@ export default function TopicForm({
 
   const handleBlur = (field) => () => {
     setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors(validateTopic(values));
   };
 
   const handleSubmit = (e) => {
@@ -57,9 +58,9 @@ export default function TopicForm({
         onBlur={handleBlur('name')}
         error={touched.name && !!errors.name}
         helperText={
-          (touched.name && errors.name) || `${values.name.length} / 100 characters`
+          (touched.name && errors.name) || `${values.name.length} / 40 characters`
         }
-        inputProps={{ maxLength: 100 }}
+        inputProps={{ maxLength: 40 }}
         required
         fullWidth
       />

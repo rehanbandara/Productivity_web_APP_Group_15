@@ -12,6 +12,7 @@ import { tagService } from '../../api/tagService';
 import { topicService } from '../../api/topicService';
 import ErrorAlert from './ErrorAlert';
 import ConfirmDialog from './ConfirmDialog';
+import { validateNote } from '../../utils/validation';
 
 // Colour palette for auto-created tags
 const TAG_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
@@ -27,6 +28,7 @@ export default function NoteEditor({ noteId, topics: propTopics, tags: propTags,
   const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   // Smart metadata state
   const [suggesting, setSuggesting] = useState(false);
@@ -34,17 +36,35 @@ export default function NoteEditor({ noteId, topics: propTopics, tags: propTags,
   const [suggestedTags, setSuggestedTags] = useState([]);     // suggested tag names not yet accepted
 
   const autosaveTimer = useRef(null);
+  const titleInputRef = useRef(null);
+
+  const validateCurrentNote = (currentNote) => {
+    const nextErrors = validateNote({
+      title: currentNote?.title || '',
+      contentType: currentNote?.contentType || 'MARKDOWN',
+      topicId: currentNote?.topic?.id ?? null,
+    });
+    setValidationErrors(nextErrors);
+    return nextErrors;
+  };
 
   // Load note
   useEffect(() => {
     if (noteId && noteId !== 'new') {
       setLoading(true);
       noteService.getById(noteId)
-        .then((r) => setNote(r.data))
+        .then((r) => {
+          setNote({
+            ...r.data,
+            contentType: r.data.contentType || 'MARKDOWN',
+          });
+          setValidationErrors({});
+        })
         .catch((err) => setError(err.message))
         .finally(() => setLoading(false));
     } else {
       setNote({ title: '', content: '', contentType: 'MARKDOWN', topic: null, tags: [] });
+      setValidationErrors({});
     }
   }, [noteId]);
 
@@ -72,7 +92,12 @@ export default function NoteEditor({ noteId, topics: propTopics, tags: propTags,
 
   // ── Save note ─────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!note?.title?.trim()) return;
+    const nextErrors = validateCurrentNote(note);
+    if (Object.keys(nextErrors).length > 0) {
+      titleInputRef.current?.focus();
+      return;
+    }
+
     setSaving(true);
     setError('');
     try {
@@ -268,10 +293,19 @@ export default function NoteEditor({ noteId, topics: propTopics, tags: propTags,
       <TextField
         placeholder="Note title…"
         value={note.title}
-        onChange={(e) => setNote((prev) => ({ ...prev, title: e.target.value }))}
+        inputRef={titleInputRef}
+        onChange={(e) => {
+          const nextNote = { ...note, title: e.target.value };
+          setNote(nextNote);
+          validateCurrentNote(nextNote);
+        }}
+        onBlur={() => validateCurrentNote(note)}
+        error={!!validationErrors.title}
+        helperText={validationErrors.title || `${note.title.length} / 30 characters`}
         fullWidth
+        required
         variant="standard"
-        inputProps={{ maxLength: 255 }}
+        inputProps={{ maxLength: 30 }}
         sx={{
           mb: 2,
           '& .MuiInput-input': { fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', py: 0.5 },
@@ -463,7 +497,7 @@ export default function NoteEditor({ noteId, topics: propTopics, tags: propTags,
       <Button
         variant="contained"
         onClick={handleSave}
-        disabled={saving || !note.title?.trim()}
+        disabled={saving}
         sx={{
           bgcolor: '#6366f1', fontWeight: 700, textTransform: 'none',
           fontSize: 14, py: 1.25, borderRadius: 1.5,
