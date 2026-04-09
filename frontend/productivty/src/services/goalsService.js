@@ -4,7 +4,7 @@ import { mockApi } from './mockApi';
 class GoalsService {
   // Check if we should use mock API
   shouldUseMock() {
-    return process.env.NODE_ENV === 'development' || !process.env.REACT_APP_API_URL;
+    return false; // Always use real API
   }
 
   // Get all goals

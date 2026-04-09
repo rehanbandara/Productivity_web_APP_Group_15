@@ -27,7 +27,7 @@ public class WellnessReminder {
     @Column(nullable = false)
     private Boolean enabled = true;
     
-    @Column(nullable = false)
+    @Column(name = "reminder_interval", nullable = false)
     private Integer interval; // in minutes
     
     @Column(nullable = false)

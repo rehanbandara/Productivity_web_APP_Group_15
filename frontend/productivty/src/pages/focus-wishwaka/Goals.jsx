@@ -76,9 +76,9 @@ const Goals = () => {
 
   const updateStats = useCallback(() => {
     const total = goals.length;
-    const completed = goals.filter(goal => goal.status === 'completed').length;
-    const inProgress = goals.filter(goal => goal.status === 'in-progress').length;
-    const notStarted = goals.filter(goal => goal.status === 'not-started').length;
+    const completed = goals.filter(goal => goal.status === 'completed' || goal.status === 'COMPLETED').length;
+    const inProgress = goals.filter(goal => goal.status === 'in-progress' || goal.status === 'IN_PROGRESS').length;
+    const notStarted = goals.filter(goal => goal.status === 'not-started' || goal.status === 'NOT_STARTED').length;
     
     // Calculate overall progress based on individual units completed
     const totalProgressUnits = goals.reduce((sum, goal) => sum + goal.progress, 0);
@@ -104,11 +104,11 @@ const Goals = () => {
         const goalData = {
           title: newGoal.title,
           description: newGoal.description,
-          priority: newGoal.priority,
+          priority: newGoal.priority.toUpperCase(),
           progress: 0,
           completed: false,
           dueDate: newGoal.dueDate,
-          status: 'not-started',
+          status: 'NOT_STARTED',
           category: newGoal.category
         };
         
@@ -190,9 +190,14 @@ const Goals = () => {
           newProgress = Math.min(goal.progress + 25, 100);
         }
         
+        // Convert status to uppercase for backend compatibility
+        const backendStatus = newProgress >= 100 ? 'COMPLETED' : 
+                           (newProgress > 0 && newProgress < 100) ? 'IN_PROGRESS' : 
+                           newStatus === 'not-started' ? 'NOT_STARTED' : newStatus.toUpperCase();
+        
         return {
           ...goal,
-          status: newProgress >= 100 ? 'completed' : (newProgress > 0 && newProgress < 100) ? 'in-progress' : newStatus,
+          status: backendStatus,
           progress: newProgress,
           completed: newProgress >= 100
         };
@@ -217,13 +222,23 @@ const Goals = () => {
 
   const getFilteredGoals = () => {
     if (filter === 'all') return goals;
-    return goals.filter(goal => goal.status === filter);
+    // Handle both lowercase and uppercase status values
+    return goals.filter(goal => {
+      const goalStatus = goal.status.toLowerCase();
+      const filterStatus = filter.toLowerCase();
+      return goalStatus === filterStatus || 
+             (filter === 'not-started' && goalStatus === 'not_started') ||
+             (filter === 'in-progress' && goalStatus === 'in_progress');
+    });
   };
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'COMPLETED':
       case 'completed': return 'success';
+      case 'IN_PROGRESS':
       case 'in-progress': return 'warning';
+      case 'NOT_STARTED':
       case 'not-started': return 'default';
       default: return 'default';
     }
@@ -231,8 +246,11 @@ const Goals = () => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
+      case 'HIGH':
       case 'high': return 'error';
+      case 'MEDIUM':
       case 'medium': return 'warning';
+      case 'LOW':
       case 'low': return 'info';
       default: return 'default';
     }

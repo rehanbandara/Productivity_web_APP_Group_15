@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/v1';
 
 // Create axios instance with default configuration
 const api = axios.create({
@@ -60,7 +60,7 @@ export const goalsAPI = {
   create: (goalData) => api.post('/goals', goalData),
   update: (id, goalData) => api.put(`/goals/${id}`, goalData),
   delete: (id) => api.delete(`/goals/${id}`),
-  updateProgress: (id, progress) => api.patch(`/goals/${id}/progress`, { progress }),
+  updateProgress: (id, progress) => api.patch(`/goals/${id}/progress`, progress, { headers: { 'Content-Type': 'application/json' } }),
   getStats: () => api.get('/goals/stats'),
 };
 

@@ -89,9 +89,13 @@ public class UserSettings {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EyeRestSettings {
+        @Column(name = "eye_rest_enabled")
         private Boolean enabled = true;
+        @Column(name = "eye_rest_interval")
         private Integer interval = 20;
+        @Column(name = "eye_rest_duration")
         private Integer duration = 20;
+        @Column(name = "eye_rest_sound_enabled")
         private Boolean soundEnabled = true;
     }
     
@@ -100,9 +104,13 @@ public class UserSettings {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PostureSettings {
+        @Column(name = "posture_enabled")
         private Boolean enabled = true;
+        @Column(name = "posture_interval")
         private Integer interval = 45;
+        @Column(name = "posture_duration")
         private Integer duration = 15;
+        @Column(name = "posture_sound_enabled")
         private Boolean soundEnabled = true;
     }
     
@@ -111,9 +119,13 @@ public class UserSettings {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class BreakSettings {
+        @Column(name = "break_enabled")
         private Boolean enabled = true;
+        @Column(name = "break_interval")
         private Integer interval = 25;
+        @Column(name = "break_duration")
         private Integer duration = 300;
+        @Column(name = "break_sound_enabled")
         private Boolean soundEnabled = true;
     }
     
