@@ -55,6 +55,12 @@ public class TimerSession {
     @Column(name = "resumed_at")
     private LocalDateTime resumedAt;
     
+    @Column(name = "user_id")
+    private Long userId;
+    
+    @Column(name = "completed_sessions")
+    private Boolean completedSessions = false;
+    
     public enum SessionMode {
         WORK, BREAK
     }

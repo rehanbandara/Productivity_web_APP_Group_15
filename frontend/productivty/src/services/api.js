@@ -76,6 +76,8 @@ export const timerAPI = {
   getTodayStats: () => api.get('/timer/stats/today'),
   getWeeklyStats: () => api.get('/timer/stats/weekly'),
   getMonthlyStats: () => api.get('/timer/stats/monthly'),
+  getRecentCompletedSessions: () => api.get('/timer/sessions/recent-completed'),
+  getCompletedSessionsCount: () => api.get('/timer/sessions/completed-count'),
 };
 
 // Wellness endpoints

@@ -19,6 +19,9 @@ public class TimerSessionDTO {
     // @NotNull(message = "Session mode is required")
     private TimerSession.SessionMode mode;
     
+    // String field for JSON deserialization
+    private String modeString;
+    
     private Boolean isRunning;
     
     // @Min(value = 0, message = "Time left cannot be negative")
@@ -35,6 +38,9 @@ public class TimerSessionDTO {
     private LocalDateTime startTime;
     
     private TimerSession.SessionStatus status;
+    
+    // String field for JSON deserialization
+    private String statusString;
     
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
@@ -61,13 +67,27 @@ public class TimerSessionDTO {
     public TimerSession toEntity() {
         TimerSession session = new TimerSession();
         session.setId(this.id);
-        session.setMode(this.mode);
+        
+        // Handle mode conversion from string to enum
+        if (this.mode != null) {
+            session.setMode(this.mode);
+        } else if (this.modeString != null) {
+            session.setMode(TimerSession.SessionMode.valueOf(this.modeString.toUpperCase()));
+        }
+        
         session.setIsRunning(this.isRunning);
         session.setTimeLeft(this.timeLeft);
         session.setCurrentSession(this.currentSession);
         session.setDuration(this.duration);
         session.setStartTime(this.startTime);
-        session.setStatus(this.status);
+        
+        // Handle status conversion from string to enum
+        if (this.status != null) {
+            session.setStatus(this.status);
+        } else if (this.statusString != null) {
+            session.setStatus(TimerSession.SessionStatus.valueOf(this.statusString.toUpperCase()));
+        }
+        
         session.setCompletedAt(this.completedAt);
         session.setPausedAt(this.pausedAt);
         session.setResumedAt(this.resumedAt);

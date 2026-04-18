@@ -40,14 +40,29 @@ public class TimerSessionService {
     }
     
     public TimerSessionDTO startSession(TimerSessionDTO sessionDTO) {
-        TimerSession session = sessionDTO.toEntity();
-        session.setStatus(TimerSession.SessionStatus.RUNNING);
-        session.setIsRunning(true);
-        session.setStartTime(LocalDateTime.now());
-        session.setCreatedAt(LocalDateTime.now());
-        
-        TimerSession savedSession = timerSessionRepository.save(session);
-        return TimerSessionDTO.fromEntity(savedSession);
+        try {
+            System.out.println("DEBUG: Starting new session with DTO: " + sessionDTO);
+            
+            TimerSession session = sessionDTO.toEntity();
+            System.out.println("DEBUG: Converted to entity: " + session);
+            
+            session.setStatus(TimerSession.SessionStatus.RUNNING);
+            session.setIsRunning(true);
+            session.setStartTime(LocalDateTime.now());
+            session.setCreatedAt(LocalDateTime.now());
+            
+            System.out.println("DEBUG: About to save session to database");
+            
+            TimerSession savedSession = timerSessionRepository.save(session);
+            
+            System.out.println("DEBUG: Successfully saved session with ID: " + savedSession.getId());
+            
+            return TimerSessionDTO.fromEntity(savedSession);
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to start session: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to start session: " + e.getMessage(), e);
+        }
     }
     
     public TimerSessionDTO pauseSession(Long sessionId) {
@@ -75,28 +90,49 @@ public class TimerSessionService {
     }
     
     public TimerSessionDTO completeSession(Long sessionId) {
-        TimerSession session = timerSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found with id: " + sessionId));
-        
-        // Calculate duration if not set
-        if (session.getDuration() == null) {
-            if (session.getStartTime() != null && session.getCompletedAt() != null) {
-                long durationMinutes = java.time.Duration.between(session.getStartTime(), session.getCompletedAt()).toMinutes();
-                session.setDuration((int) durationMinutes);
-            } else if (session.getTimeLeft() != null) {
-                // Use timeLeft to calculate duration (for sessions that were started but never had proper duration set)
-                session.setDuration(session.getTimeLeft() / 60); // Convert seconds back to minutes
-            } else {
-                session.setDuration(0); // Default to 0 if we can't calculate
+        try {
+            System.out.println("DEBUG: Attempting to complete session with ID: " + sessionId);
+            
+            TimerSession session = timerSessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new RuntimeException("Session not found with id: " + sessionId));
+            
+            System.out.println("DEBUG: Found session: " + session.getId() + ", mode: " + session.getMode());
+            
+            // Calculate duration if not set
+            if (session.getDuration() == null || session.getDuration() == 0) {
+                if (session.getTimeLeft() != null && session.getStartTime() != null) {
+                    long elapsedMinutes = java.time.Duration.between(session.getStartTime(), LocalDateTime.now()).toMinutes();
+                    session.setDuration((int) elapsedMinutes);
+                    System.out.println("DEBUG: Calculated duration from start time: " + elapsedMinutes + " minutes");
+                } else if (session.getTimeLeft() != null) {
+                    session.setDuration(session.getTimeLeft() / 60); // Convert seconds back to minutes
+                    System.out.println("DEBUG: Calculated duration from timeLeft: " + (session.getTimeLeft() / 60) + " minutes");
+                } else {
+                    session.setDuration(0); // Default to 0 if we can't calculate
+                    System.out.println("DEBUG: Using default duration: 0 minutes");
+                }
             }
+            
+            session.setStatus(TimerSession.SessionStatus.COMPLETED);
+            session.setIsRunning(false);
+            session.setCompletedAt(LocalDateTime.now());
+            session.setCompletedSessions(true);
+            // TODO: Set actual user_id when authentication is implemented
+            session.setUserId(1L); // Default user for now
+            
+            System.out.println("DEBUG: About to save session with completedSessions: " + session.getCompletedSessions());
+            
+            TimerSession updatedSession = timerSessionRepository.save(session);
+            
+            System.out.println("DEBUG: Successfully saved session. New ID: " + updatedSession.getId());
+            System.out.println("DEBUG: completedSessions value: " + updatedSession.getCompletedSessions());
+            
+            return TimerSessionDTO.fromEntity(updatedSession);
+        } catch (Exception e) {
+            System.err.println("ERROR: Failed to complete session: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to complete session: " + e.getMessage(), e);
         }
-        
-        session.setStatus(TimerSession.SessionStatus.COMPLETED);
-        session.setIsRunning(false);
-        session.setCompletedAt(LocalDateTime.now());
-        
-        TimerSession updatedSession = timerSessionRepository.save(session);
-        return TimerSessionDTO.fromEntity(updatedSession);
     }
     
     public List<TimerSessionDTO> getSessionHistory() {
@@ -105,6 +141,37 @@ public class TimerSessionService {
                 .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt()))
                 .map(TimerSessionDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+    
+    public List<TimerSessionDTO> getRecentSessions() {
+        List<TimerSession> sessions = timerSessionRepository.findAll();
+        return sessions.stream()
+                .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt()))
+                .limit(10)
+                .map(TimerSessionDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+    
+    public List<TimerSessionDTO> getRecentCompletedSessions(Long userId) {
+        List<TimerSession> sessions = timerSessionRepository.findRecentCompletedSessions(userId);
+        return sessions.stream()
+                .limit(10) // Limit to last 10 sessions
+                .map(TimerSessionDTO::fromEntity)
+                .collect(Collectors.toList());
+    }
+    
+    public Long getCompletedSessionsCount(Long userId) {
+        return timerSessionRepository.countByUserIdAndCompletedSessions(userId, true);
+    }
+    
+    public void storeRecentSessions(List<TimerSessionDTO> sessions) {
+        for (TimerSessionDTO sessionDTO : sessions) {
+            TimerSession session = sessionDTO.toEntity();
+            session.setCreatedAt(LocalDateTime.now());
+            session.setCompletedSessions(true);
+            session.setUserId(1L); // Default user for now
+            timerSessionRepository.save(session);
+        }
     }
     
     public StatsDTO getTodayStats() {

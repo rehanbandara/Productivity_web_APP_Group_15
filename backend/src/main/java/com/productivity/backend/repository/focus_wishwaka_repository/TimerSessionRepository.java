@@ -37,6 +37,12 @@ public interface TimerSessionRepository extends JpaRepository<TimerSession, Long
     @Query("SELECT COALESCE(SUM(t.duration), 0) FROM TimerSession t WHERE t.status = 'COMPLETED' AND DATE(t.createdAt) = CURRENT_DATE")
     Integer getTodayTotalFocusTime();
     
+    @Query("SELECT t FROM TimerSession t WHERE t.completedSessions = true AND t.userId = :userId ORDER BY t.completedAt DESC")
+    List<TimerSession> findRecentCompletedSessions(@Param("userId") Long userId);
+    
+    @Query("SELECT COUNT(t) FROM TimerSession t WHERE t.userId = :userId AND t.completedSessions = :completed")
+    Long countByUserIdAndCompletedSessions(@Param("userId") Long userId, @Param("completed") Boolean completed);
+    
     @Query("SELECT t FROM TimerSession t WHERE t.isRunning = true")
     TimerSession findRunningSession();
 }

@@ -29,9 +29,9 @@ import {
   Refresh as ResetIcon,
   Settings as SettingsIcon,
   Work as WorkIcon,
-  FreeBreakfast as BreakIcon,
-  CheckCircle as CompleteIcon
+  FreeBreakfast as BreakIcon
 } from '@mui/icons-material';
+import { timerService } from '../../services/timerService';
 
 const FocusTimer = () => {
   const [workDuration, setWorkDuration] = useState(25);
@@ -39,8 +39,9 @@ const FocusTimer = () => {
   const [timeLeft, setTimeLeft] = useState(workDuration * 60); //countdown logic
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [sessions, setSessions] = useState([]);
-  const [todaySessions, setTodaySessions] = useState([]);
+  const [recentCompletedSessions, setRecentCompletedSessions] = useState([]);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '' });
   const [tempWorkDuration, setTempWorkDuration] = useState(workDuration);
@@ -48,22 +49,9 @@ const FocusTimer = () => {
   
   const intervalRef = useRef(null);
 
-  // Load saved data from localStorage
+  // Load saved settings from localStorage
   useEffect(() => {
-    const savedSessions = localStorage.getItem('focusTimerSessions');
     const savedSettings = localStorage.getItem('focusTimerSettings');
-    
-    if (savedSessions) {
-      const parsedSessions = JSON.parse(savedSessions);
-      setSessions(parsedSessions);
-      
-      // Filter today's sessions
-      const today = new Date().toDateString();
-      const todaysSessions = parsedSessions.filter(session => 
-        new Date(session.date).toDateString() === today
-      );
-      setTodaySessions(todaysSessions);
-    }
     
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
@@ -75,52 +63,120 @@ const FocusTimer = () => {
     }
   }, []);
 
+  // Fetch recent completed sessions from API
+  useEffect(() => {
+    const fetchRecentSessions = async () => {
+      try {
+        const sessions = await timerService.getRecentCompletedSessions();
+        setRecentCompletedSessions(sessions);
+      } catch (error) {
+        console.error('Error fetching recent sessions:', error);
+      }
+    };
+    
+    fetchRecentSessions();
+  }, []);
+
+  // Fetch completed sessions count from API
+  useEffect(() => {
+    const fetchCompletedCount = async () => {
+      try {
+        const count = await timerService.getCompletedSessionsCount();
+        setCompletedSessionsCount(count);
+      } catch (error) {
+        console.error('Error fetching completed sessions count:', error);
+      }
+    };
+    
+    fetchCompletedCount();
+  }, []);
+
+  // Refresh recent sessions when completedSessionsCount changes
+  useEffect(() => {
+    const refreshSessions = async () => {
+      try {
+        const sessions = await timerService.getRecentCompletedSessions();
+        setRecentCompletedSessions(sessions);
+      } catch (error) {
+        console.error('Error refreshing recent sessions:', error);
+      }
+    };
+    
+    if (completedSessionsCount > 0) {
+      refreshSessions();
+    }
+  }, [completedSessionsCount]);
+
   // Save settings to localStorage
   useEffect(() => {
     const settings = { workDuration, breakDuration };
     localStorage.setItem('focusTimerSettings', JSON.stringify(settings));
   }, [workDuration, breakDuration]);
 
-  const handleSessionComplete = useCallback(() => {
+  const handleSessionComplete = useCallback(async () => {
     setIsRunning(false);
     clearInterval(intervalRef.current);
 
     if (!isBreak) {
-      // Work session completed
-      const newSession = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        duration: workDuration,
-        type: 'work'
-      };
+      // Work session completed - save to database
+      try {
+        if (currentSessionId) {
+          console.log('Attempting to complete session with ID:', currentSessionId);
+          await timerService.completeSession(currentSessionId);
+          setNotification({ open: true, message: 'Work session complete! Time for a break!' });
+          console.log('Session completed successfully');
+        }
+        
+        // Refresh recent sessions
+        const recentSessions = await timerService.getRecentCompletedSessions();
+        setRecentCompletedSessions(recentSessions);
+        
+        // Refresh completed sessions count
+        const completedCount = await timerService.getCompletedSessionsCount();
+        setCompletedSessionsCount(completedCount);
+      } catch (error) {
+        console.error('Error saving session:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Session completed but failed to save to database';
+        setNotification({ open: true, message: errorMessage });
+      }
       
-      const updatedSessions = [...sessions, newSession];
-      setSessions(updatedSessions);
-      localStorage.setItem('focusTimerSessions', JSON.stringify(updatedSessions));
-      
-      // Update today's sessions
-      const today = new Date().toDateString();
-      const todaysSessions = updatedSessions.filter(session => 
-        new Date(session.date).toDateString() === today
-      );
-      setTodaySessions(todaysSessions);
-      
-      setNotification({ open: true, message: '🎉 Work session complete! Time for a break!' });
       playNotificationSound();
       
       // Switch to break
       setIsBreak(true);
       setTimeLeft(breakDuration * 60);
+      setCurrentSessionId(null); // Reset session ID
     } else {
-      // Break completed
-      setNotification({ open: true, message: '💪 Break over! Back to focus!' });
+      // Break completed - save to database
+      try {
+        if (currentSessionId) {
+          console.log('Attempting to complete break session with ID:', currentSessionId);
+          await timerService.completeSession(currentSessionId);
+          setNotification({ open: true, message: 'Break over! Back to focus!' });
+          console.log('Break session completed successfully');
+        }
+        
+        // Refresh recent sessions
+        const recentSessions = await timerService.getRecentCompletedSessions();
+        setRecentCompletedSessions(recentSessions);
+        
+        // Refresh completed sessions count
+        const completedCount = await timerService.getCompletedSessionsCount();
+        setCompletedSessionsCount(completedCount);
+      } catch (error) {
+        console.error('Error saving break session:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Break completed but failed to save to database';
+        setNotification({ open: true, message: errorMessage });
+      }
+      
       playNotificationSound();
       
       // Switch to work
       setIsBreak(false);
       setTimeLeft(workDuration * 60);
+      setCurrentSessionId(null); // Reset session ID
     }
-  }, [isBreak, workDuration, breakDuration, sessions]);
+  }, [isBreak, workDuration, breakDuration, currentSessionId]);
 
   // Timer logic
   useEffect(() => {
@@ -156,8 +212,26 @@ const FocusTimer = () => {
     oscillator.stop(audioContext.currentTime + 0.5);
   };
 
-  const handleStart = () => {
-    setIsRunning(true);
+  const handleStart = async () => {
+    try {
+      // Create a new session in the database
+      const sessionData = {
+        modeString: isBreak ? 'BREAK' : 'WORK',
+        duration: isBreak ? breakDuration : workDuration,
+        statusString: 'RUNNING',
+        isRunning: true,
+        timeLeft: isBreak ? breakDuration * 60 : workDuration * 60
+      };
+      
+      const newSession = await timerService.startSession(sessionData);
+      setCurrentSessionId(newSession.id);
+      setIsRunning(true);
+      setNotification({ open: true, message: `${isBreak ? 'Break' : 'Focus'} session started!` });
+    } catch (error) {
+      console.error('Error starting session:', error);
+      setNotification({ open: true, message: 'Failed to start session' });
+      setIsRunning(true); // Still start locally even if database fails
+    }
   };
 
   const handlePause = () => {
@@ -184,7 +258,8 @@ const FocusTimer = () => {
   };
 
   const calculateTotalFocusTime = () => {
-    return todaySessions.reduce((total, session) => total + session.duration, 0);
+    // Use completedSessionsCount from database for accurate total
+    return completedSessionsCount * 25; // Assuming 25 minutes per session as average
   };
 
   const formatFocusTime = (minutes) => {
@@ -296,10 +371,10 @@ const FocusTimer = () => {
                 </Typography>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="h4" color="primary">
-                    {todaySessions.length}
+                    {completedSessionsCount}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Sessions completed
+                    Total completed sessions
                   </Typography>
                 </Box>
                 <Box>
@@ -342,25 +417,29 @@ const FocusTimer = () => {
               Recent Sessions
             </Typography>
             <List>
-              {todaySessions.slice(-5).reverse().map((session, index) => (
+              {recentCompletedSessions.map((session, index) => (
                 <React.Fragment key={session.id}>
                   <ListItem>
                     <ListItemIcon>
-                      <CompleteIcon color="success" />
+                      {session.mode === 'WORK' ? (
+                        <WorkIcon color="primary" />
+                      ) : (
+                        <BreakIcon color="success" />
+                      )}
                     </ListItemIcon>
                     <ListItemText
-                      primary={`Focus Session - ${session.duration} minutes`}
-                      secondary={new Date(session.date).toLocaleTimeString()}
+                      primary={`${session.mode === 'WORK' ? 'Focus' : 'Break'} Session - ${session.duration} minutes`}
+                      secondary={session.completedAt ? new Date(session.completedAt).toLocaleString() : 'Just completed'}
                     />
                   </ListItem>
-                  {index < todaySessions.slice(-5).length - 1 && <Divider />}
+                  {index < recentCompletedSessions.length - 1 && <Divider />}
                 </React.Fragment>
               ))}
-              {todaySessions.length === 0 && (
+              {recentCompletedSessions.length === 0 && (
                 <ListItem>
                   <ListItemText
-                    primary="No sessions completed today"
-                    secondary="Start your first focus session to begin tracking!"
+                    primary="No completed sessions"
+                    secondary="Complete your first focus session to see it here!"
                   />
                 </ListItem>
               )}

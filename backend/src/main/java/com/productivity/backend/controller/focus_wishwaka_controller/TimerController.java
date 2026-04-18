@@ -26,9 +26,19 @@ public class TimerController {
     }
     
     @PostMapping("/start")
-    public ResponseEntity<TimerSessionDTO> startSession(@Valid @RequestBody TimerSessionDTO sessionDTO) {
-        TimerSessionDTO session = timerSessionService.startSession(sessionDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(session);
+    public ResponseEntity<TimerSessionDTO> startSession(@RequestBody TimerSessionDTO sessionDTO) {
+        try {
+            System.out.println("DEBUG: Controller received session DTO: " + sessionDTO);
+            
+            TimerSessionDTO session = timerSessionService.startSession(sessionDTO);
+            
+            System.out.println("DEBUG: Controller returning session: " + session);
+            return ResponseEntity.status(HttpStatus.CREATED).body(session);
+        } catch (Exception e) {
+            System.err.println("ERROR: Controller failed to start session: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
     
     @PatchMapping("/{sessionId}/pause")
@@ -76,6 +86,35 @@ public class TimerController {
     @GetMapping("/sessions/month")
     public ResponseEntity<List<TimerSessionDTO>> getMonthSessions() {
         List<TimerSessionDTO> sessions = timerSessionService.getMonthSessions();
+        return ResponseEntity.ok(sessions);
+    }
+    
+    @GetMapping("/sessions/recent-completed")
+    public ResponseEntity<List<TimerSessionDTO>> getRecentCompletedSessions() {
+        // TODO: Get actual user_id from authentication context
+        Long userId = 1L; // Default user for now
+        List<TimerSessionDTO> sessions = timerSessionService.getRecentCompletedSessions(userId);
+        return ResponseEntity.ok(sessions);
+    }
+    
+    @GetMapping("/sessions/completed-count")
+    public ResponseEntity<Long> getCompletedSessionsCount() {
+        // TODO: Get actual user_id from authentication context
+        Long userId = 1L; // Default user for now
+        Long count = timerSessionService.getCompletedSessionsCount(userId);
+        return ResponseEntity.ok(count);
+    }
+    
+    @PostMapping("/sessions/store-recent")
+    public ResponseEntity<List<TimerSessionDTO>> storeRecentSessions(@RequestBody List<TimerSessionDTO> sessions) {
+        timerSessionService.storeRecentSessions(sessions);
+        List<TimerSessionDTO> storedSessions = timerSessionService.getRecentSessions();
+        return ResponseEntity.ok(storedSessions);
+    }
+    
+    @GetMapping("/sessions/recent")
+    public ResponseEntity<List<TimerSessionDTO>> getRecentSessions() {
+        List<TimerSessionDTO> sessions = timerSessionService.getRecentSessions();
         return ResponseEntity.ok(sessions);
     }
 }
