@@ -5,31 +5,14 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    "@mui/icons-material": "^7.3.9",
->>>>>>> focus-wellness
-    "@mui/material": "^7.3.9",
-=======
     "@mui/icons-material": "^7.3.9",
     "@mui/material": "^7.3.9",
     "@mui/x-date-pickers": "^8.27.2",
     "@tanstack/react-query": "^5.95.2",
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
-<<<<<<< HEAD
-    "axios": "^1.13.6",
-    "mui": "^0.0.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.1",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-=======
     "axios": "^1.14.0",
     "dayjs": "^1.11.20",
     "react": "^18.3.1",
@@ -39,7 +22,6 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4",
     "zustand": "^5.0.12"
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6
   },
   "scripts": {
     "start": "react-scripts start",
