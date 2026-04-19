@@ -74,12 +74,53 @@ const Wellness = () => {
   const intervalsRef = useRef({});
   const alertRef = useRef(null);
 
-  // Load settings from localStorage
+  // Load settings from backend
   useEffect(() => {
-    const savedReminders = localStorage.getItem('wellnessReminders');
-    if (savedReminders) {
-      setReminders(JSON.parse(savedReminders));
-    }
+    const loadRemindersFromBackend = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/wellness/reminders');
+        if (response.ok) {
+          const backendReminders = await response.json();
+          
+          // Update local state with backend data
+          setReminders(prev => ({
+            eyeRest: {
+              ...prev.eyeRest,
+              enabled: backendReminders.eyeRest?.enabled || prev.eyeRest.enabled,
+              interval: backendReminders.eyeRest?.interval || prev.eyeRest.interval,
+              duration: backendReminders.eyeRest?.duration || prev.eyeRest.duration
+            },
+            posture: {
+              ...prev.posture,
+              enabled: backendReminders.posture?.enabled || prev.posture.enabled,
+              interval: backendReminders.posture?.interval || prev.posture.interval,
+              duration: backendReminders.posture?.duration || prev.posture.duration
+            },
+            break: {
+              ...prev.break,
+              enabled: backendReminders.break?.enabled || prev.break.enabled,
+              interval: backendReminders.break?.interval || prev.break.interval,
+              duration: backendReminders.break?.duration || prev.break.duration
+            }
+          }));
+        } else {
+          // Fallback to localStorage if backend is not available
+          const savedReminders = localStorage.getItem('wellnessReminders');
+          if (savedReminders) {
+            setReminders(JSON.parse(savedReminders));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading wellness reminders from backend:', error);
+        // Fallback to localStorage if backend is not available
+        const savedReminders = localStorage.getItem('wellnessReminders');
+        if (savedReminders) {
+          setReminders(JSON.parse(savedReminders));
+        }
+      }
+    };
+
+    loadRemindersFromBackend();
   }, []);
 
   // Save settings to localStorage
@@ -231,6 +272,98 @@ const Wellness = () => {
         [field]: value
       }
     }));
+  };
+
+  const handleSettingsSave = async () => {
+    try {
+      // First get current reminders to get their actual IDs
+      const getResponse = await fetch('http://localhost:8080/api/wellness/reminders');
+      if (!getResponse.ok) {
+        throw new Error('Failed to get current reminders');
+      }
+      
+      const currentReminders = await getResponse.json();
+      
+      // Convert reminders to backend format using actual IDs
+      const remindersData = {
+        eyeRest: {
+          id: currentReminders.eyeRest?.id || 1,
+          enabled: reminders.eyeRest.enabled,
+          interval: reminders.eyeRest.interval,
+          duration: reminders.eyeRest.duration,
+          soundEnabled: true
+        },
+        posture: {
+          id: currentReminders.posture?.id || 2,
+          enabled: reminders.posture.enabled,
+          interval: reminders.posture.interval,
+          duration: reminders.posture.duration,
+          soundEnabled: true
+        },
+        break: {
+          id: currentReminders.break?.id || 3,
+          enabled: reminders.break.enabled,
+          interval: reminders.break.interval,
+          duration: reminders.break.duration,
+          soundEnabled: true
+        }
+      };
+
+      console.log('DEBUG: Current reminders from backend:', currentReminders);
+      console.log('DEBUG: Sending reminders data:', remindersData);
+      
+      const response = await fetch('http://localhost:8080/api/wellness/reminders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(remindersData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('DEBUG: Backend response error:', errorText);
+        throw new Error('Failed to save wellness reminders: ' + errorText);
+      }
+
+      const savedReminders = await response.json();
+      
+      // Update local state with saved data
+      setReminders(prev => ({
+        eyeRest: {
+          ...prev.eyeRest,
+          enabled: savedReminders.eyeRest.enabled,
+          interval: savedReminders.eyeRest.interval,
+          duration: savedReminders.eyeRest.duration
+        },
+        posture: {
+          ...prev.posture,
+          enabled: savedReminders.posture.enabled,
+          interval: savedReminders.posture.interval,
+          duration: savedReminders.posture.duration
+        },
+        break: {
+          ...prev.break,
+          enabled: savedReminders.break.enabled,
+          interval: savedReminders.break.interval,
+          duration: savedReminders.break.duration
+        }
+      }));
+
+      setSettingsOpen(false);
+      setNotification({
+        open: true,
+        message: 'Wellness reminder settings saved successfully!',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error saving wellness reminders:', error);
+      setNotification({
+        open: true,
+        message: 'Failed to save wellness reminder settings',
+        type: 'error'
+      });
+    }
   };
 
   const formatTime = (minutes) => {
@@ -584,7 +717,8 @@ const Wellness = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsOpen(false)}>Close</Button>
+          <Button onClick={() => setSettingsOpen(false)}>Cancel</Button>
+          <Button onClick={handleSettingsSave} variant="contained">Save Settings</Button>
         </DialogActions>
       </Dialog>
 

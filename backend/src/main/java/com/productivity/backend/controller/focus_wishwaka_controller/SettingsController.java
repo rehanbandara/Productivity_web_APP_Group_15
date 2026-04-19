@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/settings")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class SettingsController {
     
     private final UserSettingsService userSettingsService;
@@ -24,7 +24,7 @@ public class SettingsController {
     }
     
     @PutMapping
-    public ResponseEntity<UserSettingsDTO> updateSettings(@com.productivity.backend.controller.focus_wishwaka_controller.Valid @RequestBody UserSettingsDTO settingsDTO) {
+    public ResponseEntity<UserSettingsDTO> updateSettings(@Valid @RequestBody UserSettingsDTO settingsDTO) {
         UserSettingsDTO updatedSettings = userSettingsService.updateSettings(settingsDTO);
         return ResponseEntity.ok(updatedSettings);
     }
@@ -33,5 +33,24 @@ public class SettingsController {
     public ResponseEntity<UserSettingsDTO> resetToDefaults() {
         UserSettingsDTO defaultSettings = userSettingsService.resetToDefaults();
         return ResponseEntity.ok(defaultSettings);
+    }
+    
+    @GetMapping("/timer")
+    public ResponseEntity<UserSettingsDTO> getTimerSettings() {
+        UserSettingsDTO settings = userSettingsService.getUserSettings();
+        return ResponseEntity.ok(settings);
+    }
+    
+    @PutMapping("/timer")
+    public ResponseEntity<UserSettingsDTO> updateTimerSettings(@Valid @RequestBody UserSettingsDTO settingsDTO) {
+        // Only update focus settings (timer settings)
+        UserSettingsDTO currentSettings = userSettingsService.getUserSettings();
+        
+        if (settingsDTO.getFocus() != null) {
+            currentSettings.setFocus(settingsDTO.getFocus());
+        }
+        
+        UserSettingsDTO updatedSettings = userSettingsService.updateSettings(currentSettings);
+        return ResponseEntity.ok(updatedSettings);
     }
 }

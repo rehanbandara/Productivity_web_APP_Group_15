@@ -36,7 +36,7 @@ import { timerService } from '../../services/timerService';
 const FocusTimer = () => {
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
-  const [timeLeft, setTimeLeft] = useState(workDuration * 60); //countdown logic
+  const [timeLeft, setTimeLeft] = useState(25 * 60); //countdown logic - use default initially
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [recentCompletedSessions, setRecentCompletedSessions] = useState([]);
@@ -44,23 +44,85 @@ const FocusTimer = () => {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '' });
-  const [tempWorkDuration, setTempWorkDuration] = useState(workDuration);
-  const [tempBreakDuration, setTempBreakDuration] = useState(breakDuration);
+  const [tempWorkDuration, setTempWorkDuration] = useState(25);
+  const [tempBreakDuration, setTempBreakDuration] = useState(5);
+
+  // Sync temp states with current states when dialog opens
+  useEffect(() => {
+    if (settingsOpen) {
+      setTempWorkDuration(workDuration);
+      setTempBreakDuration(breakDuration);
+    }
+  }, [settingsOpen, workDuration, breakDuration]);
   
   const intervalRef = useRef(null);
 
-  // Load saved settings from localStorage
+  // Load settings from backend
   useEffect(() => {
-    const savedSettings = localStorage.getItem('focusTimerSettings');
-    
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      setWorkDuration(settings.workDuration || 25);
-      setBreakDuration(settings.breakDuration || 5);
-      setTimeLeft((settings.workDuration || 25) * 60);
-      setTempWorkDuration(settings.workDuration || 25);
-      setTempBreakDuration(settings.breakDuration || 5);
-    }
+    const loadSettingsFromBackend = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/settings/timer');
+        if (response.ok) {
+          const backendSettings = await response.json();
+          console.log('DEBUG: Loaded settings from backend:', backendSettings);
+          
+          if (backendSettings.focus) {
+            const newWorkDuration = backendSettings.focus.workDuration || 25;
+            const newBreakDuration = backendSettings.focus.shortBreakDuration || 5;
+            
+            setWorkDuration(newWorkDuration);
+            setBreakDuration(newBreakDuration);
+            setTempWorkDuration(newWorkDuration);
+            setTempBreakDuration(newBreakDuration);
+            
+            // Update timeLeft only if timer is not running
+            if (!isRunning) {
+              setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
+              console.log('DEBUG: Updated timeLeft to:', isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
+            }
+            
+            console.log('DEBUG: Applied backend settings - workDuration:', newWorkDuration, 'breakDuration:', newBreakDuration);
+          }
+        } else {
+          // Fallback to localStorage if backend is not available
+          const savedSettings = localStorage.getItem('focusTimerSettings');
+          if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            const newWorkDuration = settings.workDuration || 25;
+            const newBreakDuration = settings.breakDuration || 5;
+            
+            setWorkDuration(newWorkDuration);
+            setBreakDuration(newBreakDuration);
+            setTempWorkDuration(newWorkDuration);
+            setTempBreakDuration(newBreakDuration);
+            
+            if (!isRunning) {
+              setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading settings from backend:', error);
+        // Fallback to localStorage if backend is not available
+        const savedSettings = localStorage.getItem('focusTimerSettings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          const newWorkDuration = settings.workDuration || 25;
+          const newBreakDuration = settings.breakDuration || 5;
+          
+          setWorkDuration(newWorkDuration);
+          setBreakDuration(newBreakDuration);
+          setTempWorkDuration(newWorkDuration);
+          setTempBreakDuration(newBreakDuration);
+          
+          if (!isRunning) {
+            setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
+          }
+        }
+      }
+    };
+
+    loadSettingsFromBackend();
   }, []);
 
   // Fetch recent completed sessions from API
@@ -82,7 +144,9 @@ const FocusTimer = () => {
     const fetchCompletedCount = async () => {
       try {
         const count = await timerService.getCompletedSessionsCount();
+        console.log('DEBUG: Fetched completed sessions count:', count);
         setCompletedSessionsCount(count);
+        console.log('DEBUG: Set completedSessionsCount state to:', count);
       } catch (error) {
         console.error('Error fetching completed sessions count:', error);
       }
@@ -133,7 +197,9 @@ const FocusTimer = () => {
         
         // Refresh completed sessions count
         const completedCount = await timerService.getCompletedSessionsCount();
+        console.log('DEBUG: Work session completion - fetched completed count:', completedCount);
         setCompletedSessionsCount(completedCount);
+        console.log('DEBUG: Work session completion - set completedSessionsCount to:', completedCount);
       } catch (error) {
         console.error('Error saving session:', error);
         const errorMessage = error.response?.data?.message || error.message || 'Session completed but failed to save to database';
@@ -162,7 +228,9 @@ const FocusTimer = () => {
         
         // Refresh completed sessions count
         const completedCount = await timerService.getCompletedSessionsCount();
+        console.log('DEBUG: Break session completion - fetched completed count:', completedCount);
         setCompletedSessionsCount(completedCount);
+        console.log('DEBUG: Break session completion - set completedSessionsCount to:', completedCount);
       } catch (error) {
         console.error('Error saving break session:', error);
         const errorMessage = error.response?.data?.message || error.message || 'Break completed but failed to save to database';
@@ -244,11 +312,67 @@ const FocusTimer = () => {
     setTimeLeft(isBreak ? breakDuration * 60 : workDuration * 60);
   };
 
-  const handleSettingsSave = () => {
-    setWorkDuration(tempWorkDuration);
-    setBreakDuration(tempBreakDuration);
-    setTimeLeft(isBreak ? tempBreakDuration * 60 : tempWorkDuration * 60);
-    setSettingsOpen(false);
+  const handleSettingsSave = async () => {
+    try {
+      console.log('DEBUG: Saving settings - workDuration:', tempWorkDuration, 'breakDuration:', tempBreakDuration);
+      
+      // Prepare settings data for backend
+      const settingsData = {
+        focus: {
+          workDuration: tempWorkDuration,
+          shortBreakDuration: tempBreakDuration,
+          longBreakDuration: 15,
+          sessionsUntilLongBreak: 4,
+          autoStartBreaks: false,
+          autoStartWork: false,
+          soundEnabled: true,
+          volume: 0.5
+        }
+      };
+
+      const response = await fetch('http://localhost:8080/api/settings/timer', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settingsData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save timer settings');
+      }
+
+      const savedSettings = await response.json();
+      
+      // Update local state with saved data
+      setWorkDuration(tempWorkDuration);
+      setBreakDuration(tempBreakDuration);
+      setTimeLeft(isBreak ? tempBreakDuration * 60 : tempWorkDuration * 60);
+      setSettingsOpen(false);
+      
+      // Also save to localStorage as backup
+      const settings = { workDuration: tempWorkDuration, breakDuration: tempBreakDuration };
+      localStorage.setItem('focusTimerSettings', JSON.stringify(settings));
+      
+      console.log('DEBUG: Settings saved to backend and localStorage:', settings);
+      
+      // Show success notification
+      setNotification({ open: true, message: 'Timer settings saved successfully!', type: 'success' });
+      
+    } catch (error) {
+      console.error('Error saving timer settings:', error);
+      
+      // Fallback to localStorage if backend fails
+      setWorkDuration(tempWorkDuration);
+      setBreakDuration(tempBreakDuration);
+      setTimeLeft(isBreak ? tempBreakDuration * 60 : tempWorkDuration * 60);
+      setSettingsOpen(false);
+      
+      const settings = { workDuration: tempWorkDuration, breakDuration: tempBreakDuration };
+      localStorage.setItem('focusTimerSettings', JSON.stringify(settings));
+      
+      setNotification({ open: true, message: 'Failed to save to backend, saved locally', type: 'warning' });
+    }
   };
 
   const formatTime = (seconds) => {
@@ -258,8 +382,30 @@ const FocusTimer = () => {
   };
 
   const calculateTotalFocusTime = () => {
-    // Use completedSessionsCount from database for accurate total
-    return completedSessionsCount * 25; // Assuming 25 minutes per session as average
+    console.log('DEBUG: recentCompletedSessions:', recentCompletedSessions);
+    
+    // Calculate total from actual completed sessions
+    const totalMinutes = recentCompletedSessions.reduce((total, session) => {
+      console.log('DEBUG: Processing session:', session);
+      console.log('DEBUG: Session mode:', session.mode, 'Session duration:', session.duration);
+      
+      // Only count work sessions (not break sessions)
+      if (session.mode === 'WORK' || session.mode === 'work') {
+        // Convert duration from seconds to minutes
+        const sessionMinutes = session.duration / 60;
+        console.log('DEBUG: Adding session minutes:', sessionMinutes);
+        return total + sessionMinutes;
+      }
+      return total;
+    }, 0);
+    
+    console.log('DEBUG: Total minutes before rounding:', totalMinutes);
+    
+    // Round to nearest whole number to avoid floating-point precision issues
+    const roundedTotal = Math.round(totalMinutes);
+    console.log('DEBUG: Final total focus time:', roundedTotal);
+    
+    return roundedTotal;
   };
 
   const formatFocusTime = (minutes) => {
@@ -371,7 +517,7 @@ const FocusTimer = () => {
                 </Typography>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="h4" color="primary">
-                    {completedSessionsCount}
+                    {console.log('DEBUG: Rendering completedSessionsCount:', completedSessionsCount) || completedSessionsCount}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
                     Total completed sessions
@@ -379,7 +525,7 @@ const FocusTimer = () => {
                 </Box>
                 <Box>
                   <Typography variant="h4" color="success.main">
-                    {formatFocusTime(calculateTotalFocusTime())}
+                    {console.log('DEBUG: Rendering calculateTotalFocusTime():', calculateTotalFocusTime()) || formatFocusTime(calculateTotalFocusTime())}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
                     Total focus time

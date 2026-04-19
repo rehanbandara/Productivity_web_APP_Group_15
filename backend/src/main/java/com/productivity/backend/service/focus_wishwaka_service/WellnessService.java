@@ -71,9 +71,46 @@ public class WellnessService {
         
         for (Map.Entry<String, WellnessReminderDTO> entry : reminders.entrySet()) {
             WellnessReminderDTO dto = entry.getValue();
-            WellnessReminder reminder = wellnessReminderRepository.findById(dto.getId())
-                    .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + dto.getId()));
+            WellnessReminder reminder;
             
+            // Try to find existing reminder by ID, if not found, find by type and create if needed
+            if (dto.getId() != null && dto.getId() > 0) {
+                reminder = wellnessReminderRepository.findById(dto.getId()).orElse(null);
+            } else {
+                reminder = null;
+            }
+            
+            // If reminder not found by ID, try to find by type
+            if (reminder == null) {
+                WellnessReminder.ReminderType reminderType;
+                switch (entry.getKey().toLowerCase()) {
+                    case "eyerest":
+                        reminderType = WellnessReminder.ReminderType.EYE_REST;
+                        break;
+                    case "posture":
+                        reminderType = WellnessReminder.ReminderType.POSTURE;
+                        break;
+                    case "break":
+                        reminderType = WellnessReminder.ReminderType.BREAK;
+                        break;
+                    default:
+                        throw new RuntimeException("Unknown reminder type: " + entry.getKey());
+                }
+                
+                // Find existing reminder by type or create new one
+                reminder = wellnessReminderRepository.findByType(reminderType).stream()
+                        .findFirst()
+                        .orElseGet(() -> {
+                            WellnessReminder newReminder = new WellnessReminder(
+                                reminderType, 
+                                getDefaultInterval(reminderType), 
+                                getDefaultDuration(reminderType)
+                            );
+                            return wellnessReminderRepository.save(newReminder);
+                        });
+            }
+            
+            // Update reminder properties
             reminder.setEnabled(dto.getEnabled());
             reminder.setInterval(dto.getInterval());
             reminder.setDuration(dto.getDuration());

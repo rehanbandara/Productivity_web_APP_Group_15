@@ -252,6 +252,26 @@ class TimerService {
         breakSessions.reduce((total, session) => total + (session.duration || 0), 0) / breakSessions.length : 0
     };
   }
+
+  // Get recent completed sessions
+  async getRecentCompletedSessions() {
+    try {
+      const response = await timerAPI.getRecentCompletedSessions();
+      return response.data;
+    } catch (error) {
+      throw new Error(apiUtils.handleError(error));
+    }
+  }
+
+  // Get completed sessions count
+  async getCompletedSessionsCount() {
+    try {
+      const response = await timerAPI.getCompletedSessionsCount();
+      return response.data;
+    } catch (error) {
+      throw new Error(apiUtils.handleError(error));
+    }
+  }
 }
 
 export const timerService = new TimerService();

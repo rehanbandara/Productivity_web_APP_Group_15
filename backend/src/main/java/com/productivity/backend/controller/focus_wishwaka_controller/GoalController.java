@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin
-@RequestMapping(value = "api/v1")
+@RequestMapping(value = "/api")
 public class GoalController {
     @Autowired
     private GoalService goalService;

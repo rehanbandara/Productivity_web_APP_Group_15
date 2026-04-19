@@ -8,23 +8,14 @@ import {
   CardContent,
   Button,
   Chip,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Avatar,
   Divider
 } from '@mui/material';
 import {
   PlayArrow as PlayIcon,
   Refresh as ResetIcon,
-  Timer as TimerIcon,
   Work as WorkIcon,
   FreeBreakfast as BreakIcon,
-  SelfImprovement as PostureIcon,
-  CheckCircle as CompleteIcon,
-  NotificationsActive as AlertIcon
+  SelfImprovement as PostureIcon
 } from '@mui/icons-material';
 
 const Dashboard = () => {
@@ -43,26 +34,12 @@ const Dashboard = () => {
     tasksCompleted: 8
   });
 
-  // Progress State
-  const [progress] = useState({
-    dailyGoal: 6,
-    completed: 3,
-    percentage: 50
-  });
-
   // Wellness Status State
   const [wellness] = useState({
     lastBreak: '10:30 AM',
     eyeRestStatus: 'Good',
     postureReminder: 'Active'
   });
-
-  // Recent Activity State
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, type: 'session', message: 'Completed 1 session', time: '9:45 AM', icon: 'complete' },
-    { id: 2, type: 'break', message: 'Break reminder triggered', time: '10:15 AM', icon: 'break' },
-    { id: 3, type: 'posture', message: 'Posture alert', time: '11:00 AM', icon: 'posture' }
-  ]);
 
   // Timer effect
   useEffect(() => {
@@ -89,10 +66,6 @@ const Dashboard = () => {
           completedSessions: prev.completedSessions + 1,
           totalFocusTime: prev.totalFocusTime + 25
         }));
-        setRecentActivity(prev => [
-          { id: Date.now(), type: 'session', message: `Completed session ${timerState.currentSession}`, time: new Date().toLocaleTimeString(), icon: 'complete' },
-          ...prev.slice(0, 4)
-        ]);
       }
     }
 
@@ -131,24 +104,7 @@ const Dashboard = () => {
     });
   };
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'complete': return <CompleteIcon />;
-      case 'break': return <BreakIcon />;
-      case 'posture': return <PostureIcon />;
-      default: return <AlertIcon />;
-    }
-  };
-
-  const getActivityColor = (type) => {
-    switch (type) {
-      case 'complete': return 'success';
-      case 'break': return 'warning';
-      case 'posture': return 'info';
-      default: return 'default';
-    }
-  };
-
+  
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box sx={{ flexGrow: 1, bgcolor: '#f5f5f5', minHeight: '100vh', p: 3 }}>
@@ -205,49 +161,7 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-          {/* 2. Current Focus Status */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    <TimerIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Focus Status
-                  </Typography>
-                  <Chip 
-                    label={timerState.mode === 'work' ? 'WORK MODE' : 'BREAK MODE'}
-                    color={timerState.mode === 'work' ? 'primary' : 'secondary'}
-                    sx={{ fontWeight: 'bold' }}
-                  />
-                </Box>
-                
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                  <Typography variant="h2" sx={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2c3e50' }}>
-                    {productivity.completedSessions}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Completed Sessions
-                  </Typography>
-                </Box>
-
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2">Today's Focus Time</Typography>
-                    <Typography variant="body2" color="primary.main">{formatFocusTime(productivity.totalFocusTime)}</Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {Math.round((productivity.totalFocusTime / 240) * 100)}% of 4-hour goal
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={Math.min((productivity.totalFocusTime / 240) * 100, 100)}
-                    sx={{ height: 8, borderRadius: 4 }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
+          
           {/* 3. Today's Productivity Summary */}
           <Grid item xs={12} md={4}>
             <Card sx={{ mb: 3 }}>
@@ -287,47 +201,7 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-          {/* 4. Progress Visualization */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <CompleteIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Progress Toward Daily Goal
-                </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2">Daily Goal: {progress.dailyGoal} tasks</Typography>
-                    <Typography variant="body2">Completed: {progress.completed} tasks</Typography>
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {progress.percentage}% Complete
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={progress.percentage} 
-                    sx={{ height: 10, borderRadius: 5 }}
-                  />
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                  <Chip 
-                    label={`${progress.completed} of ${progress.dailyGoal} completed`}
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                  />
-                  <Chip 
-                    label={progress.percentage >= 100 ? 'Goal Achieved!' : `${progress.dailyGoal - progress.completed} remaining`}
-                    color={progress.percentage >= 100 ? 'success' : 'default'}
-                    size="small"
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
+          
           {/* 5. Wellness Status */}
           <Grid item xs={12} md={4}>
             <Card sx={{ mb: 3 }}>
@@ -365,40 +239,6 @@ const Dashboard = () => {
                     </Box>
                   </Grid>
                 </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* 6. Recent Alerts / Activity */}
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  <AlertIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Recent Activity
-                </Typography>
-                
-                <List sx={{ maxHeight: 200, overflow: 'auto' }}>
-                  {recentActivity.map((activity) => (
-                    <ListItem key={activity.id} sx={{ px: 0 }}>
-                      <ListItemIcon>
-                        <Avatar sx={{ 
-                          bgcolor: getActivityColor(activity.type) + '.main',
-                          width: 28,
-                          height: 28
-                        }}>
-                          {getActivityIcon(activity.icon)}
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={activity.message}
-                        secondary={activity.time}
-                        primaryTypographyProps={{ variant: 'body2' }}
-                        secondaryTypographyProps={{ variant: 'caption' }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
               </CardContent>
             </Card>
           </Grid>
