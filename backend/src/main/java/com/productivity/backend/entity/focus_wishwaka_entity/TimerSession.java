@@ -1,5 +1,6 @@
 package com.productivity.backend.entity.focus_wishwaka_entity;
 
+import com.productivity.backend.entity.user_entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -55,8 +56,9 @@ public class TimerSession {
     @Column(name = "resumed_at")
     private LocalDateTime resumedAt;
     
-    @Column(name = "user_id")
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
     
     @Column(name = "completed_sessions")
     private Boolean completedSessions = false;

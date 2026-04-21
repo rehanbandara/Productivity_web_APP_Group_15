@@ -1,6 +1,7 @@
 package com.productivity.backend.repository.focus_wishwaka_repository;
 
 import com.productivity.backend.entity.focus_wishwaka_entity.WellnessReminder;
+import com.productivity.backend.entity.user_entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,15 +13,17 @@ import java.util.Optional;
 @Repository
 public interface WellnessReminderRepository extends JpaRepository<WellnessReminder, Long> {
     
-    List<WellnessReminder> findByEnabled(Boolean enabled);
+    List<WellnessReminder> findByUser(User user);
     
-    List<WellnessReminder> findByType(WellnessReminder.ReminderType type);
+    List<WellnessReminder> findByUserAndEnabled(User user, Boolean enabled);
     
-    Optional<WellnessReminder> findByTypeAndEnabled(WellnessReminder.ReminderType type, Boolean enabled);
+    List<WellnessReminder> findByUserAndType(User user, WellnessReminder.ReminderType type);
     
-    @Query("SELECT w FROM WellnessReminder w WHERE w.enabled = true AND w.isActive = false")
-    List<WellnessReminder> findActiveReminders();
+    Optional<WellnessReminder> findByUserAndTypeAndEnabled(User user, WellnessReminder.ReminderType type, Boolean enabled);
     
-    @Query("SELECT w FROM WellnessReminder w WHERE w.type = :type AND w.enabled = true")
-    Optional<WellnessReminder> findEnabledReminderByType(@Param("type") WellnessReminder.ReminderType type);
+    @Query("SELECT w FROM WellnessReminder w WHERE w.user = :user AND w.enabled = true AND w.isActive = false")
+    List<WellnessReminder> findActiveReminders(@Param("user") User user);
+    
+    @Query("SELECT w FROM WellnessReminder w WHERE w.user = :user AND w.type = :type AND w.enabled = true")
+    Optional<WellnessReminder> findEnabledReminderByType(@Param("user") User user, @Param("type") WellnessReminder.ReminderType type);
 }

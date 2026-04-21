@@ -2,8 +2,11 @@ package com.productivity.backend.controller.focus_wishwaka_controller;
 
 import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
 import com.productivity.backend.service.focus_wishwaka_service.DashboardService;
+import com.productivity.backend.entity.user_entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -18,7 +21,9 @@ public class DashboardController {
     
     @GetMapping("/overview")
     public ResponseEntity<Map<String, Object>> getDashboardOverview() {
-        Map<String, Object> overview = dashboardService.getDashboardOverview();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        Map<String, Object> overview = dashboardService.getDashboardOverview(user);
         return ResponseEntity.ok(overview);
     }
     

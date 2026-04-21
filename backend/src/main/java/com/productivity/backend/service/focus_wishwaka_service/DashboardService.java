@@ -1,6 +1,7 @@
 package com.productivity.backend.service.focus_wishwaka_service;
 
 import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
+import com.productivity.backend.entity.user_entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +18,13 @@ public class DashboardService {
     private final TimerSessionService timerSessionService;
     private final WellnessService wellnessService;
     
-    public Map<String, Object> getDashboardOverview() {
+    public Map<String, Object> getDashboardOverview(User user) {
         Map<String, Object> overview = new HashMap<>();
         
         // Get stats from all services
-        StatsDTO goalsStats = goalService.getGoalsStats();
-        StatsDTO timerStats = timerSessionService.getTodayStats();
-        StatsDTO wellnessStats = wellnessService.getWellnessStats();
+        StatsDTO goalsStats = goalService.getGoalsStats(user);
+        StatsDTO timerStats = timerSessionService.getTodayStats(user);
+        StatsDTO wellnessStats = wellnessService.getWellnessStats(user);
         
         // Goals data
         overview.put("goals", goalsStats);

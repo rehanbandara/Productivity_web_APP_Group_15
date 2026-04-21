@@ -4,6 +4,7 @@ import com.productivity.backend.DTO.focus_wishwaka_DTO.WellnessReminderDTO;
 import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
 import com.productivity.backend.entity.focus_wishwaka_entity.WellnessReminder;
 import com.productivity.backend.entity.focus_wishwaka_entity.BreakLog;
+import com.productivity.backend.entity.user_entity.User;
 import com.productivity.backend.repository.focus_wishwaka_repository.WellnessReminderRepository;
 import com.productivity.backend.repository.focus_wishwaka_repository.BreakLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,8 +26,11 @@ public class WellnessService {
     private final WellnessReminderRepository wellnessReminderRepository;
     private final BreakLogRepository breakLogRepository;
     
-    public Map<String, WellnessReminderDTO> getReminders() {
-        List<WellnessReminder> reminders = wellnessReminderRepository.findByEnabled(true);
+    // In-memory storage for unauthenticated users
+    private final Map<String, Map<String, WellnessReminderDTO>> anonymousReminders = new ConcurrentHashMap<>();
+    
+    public Map<String, WellnessReminderDTO> getReminders(User user) {
+        List<WellnessReminder> reminders = wellnessReminderRepository.findByUserAndEnabled(user, true);
         Map<String, WellnessReminderDTO> reminderMap = new HashMap<>();
         
         for (WellnessReminder reminder : reminders) {
@@ -33,16 +38,17 @@ public class WellnessService {
         }
         
         // Ensure all three types are present
-        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.EYE_REST);
-        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.POSTURE);
-        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.BREAK);
+        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.EYE_REST, user);
+        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.POSTURE, user);
+        ensureReminderExists(reminderMap, WellnessReminder.ReminderType.BREAK, user);
         
         return reminderMap;
     }
     
-    private void ensureReminderExists(Map<String, WellnessReminderDTO> reminderMap, WellnessReminder.ReminderType type) {
+    private void ensureReminderExists(Map<String, WellnessReminderDTO> reminderMap, WellnessReminder.ReminderType type, User user) {
         if (!reminderMap.containsKey(type.name().toLowerCase())) {
             WellnessReminder reminder = new WellnessReminder(type, getDefaultInterval(type), getDefaultDuration(type));
+            reminder.setUser(user);
             reminder = wellnessReminderRepository.save(reminder);
             reminderMap.put(type.name().toLowerCase(), WellnessReminderDTO.fromEntity(reminder));
         }
@@ -66,7 +72,7 @@ public class WellnessService {
         }
     }
     
-    public Map<String, WellnessReminderDTO> updateReminders(Map<String, WellnessReminderDTO> reminders) {
+    public Map<String, WellnessReminderDTO> updateReminders(Map<String, WellnessReminderDTO> reminders, User user) {
         Map<String, WellnessReminderDTO> updatedReminders = new HashMap<>();
         
         for (Map.Entry<String, WellnessReminderDTO> entry : reminders.entrySet()) {
@@ -97,8 +103,8 @@ public class WellnessService {
                         throw new RuntimeException("Unknown reminder type: " + entry.getKey());
                 }
                 
-                // Find existing reminder by type or create new one
-                reminder = wellnessReminderRepository.findByType(reminderType).stream()
+                // Find existing reminder by type for this user or create new one
+                reminder = wellnessReminderRepository.findByUserAndType(user, reminderType).stream()
                         .findFirst()
                         .orElseGet(() -> {
                             WellnessReminder newReminder = new WellnessReminder(
@@ -106,6 +112,7 @@ public class WellnessService {
                                 getDefaultInterval(reminderType), 
                                 getDefaultDuration(reminderType)
                             );
+                            newReminder.setUser(user);
                             return wellnessReminderRepository.save(newReminder);
                         });
             }
@@ -123,17 +130,17 @@ public class WellnessService {
         return updatedReminders;
     }
     
-    public StatsDTO getWellnessStats() {
-        Long totalBreaks = breakLogRepository.getTodayBreakCount();
+    public StatsDTO getWellnessStats(User user) {
+        Long totalBreaks = breakLogRepository.getTodayBreakCount(user);
         if (totalBreaks == null) totalBreaks = 0L;
         
-        Long eyeRestBreaks = breakLogRepository.getTodayBreakCountByType(BreakLog.BreakType.EYE_REST);
+        Long eyeRestBreaks = breakLogRepository.getTodayBreakCountByType(user, BreakLog.BreakType.EYE_REST);
         if (eyeRestBreaks == null) eyeRestBreaks = 0L;
         
-        Long postureBreaks = breakLogRepository.getTodayBreakCountByType(BreakLog.BreakType.POSTURE);
+        Long postureBreaks = breakLogRepository.getTodayBreakCountByType(user, BreakLog.BreakType.POSTURE);
         if (postureBreaks == null) postureBreaks = 0L;
         
-        Long regularBreaks = breakLogRepository.getTodayBreakCountByType(BreakLog.BreakType.BREAK);
+        Long regularBreaks = breakLogRepository.getTodayBreakCountByType(user, BreakLog.BreakType.BREAK);
         if (regularBreaks == null) regularBreaks = 0L;
         
         // Calculate wellness score and compliance rate (simplified logic)
@@ -163,16 +170,62 @@ public class WellnessService {
         return Math.min(100, (totalBreaks * 100) / idealBreaks);
     }
     
-    public BreakLog logBreak(BreakLog.BreakType type, Integer duration) {
+    public BreakLog logBreak(BreakLog.BreakType type, Integer duration, User user) {
         BreakLog breakLog = new BreakLog(type, duration);
+        breakLog.setUser(user);
         return breakLogRepository.save(breakLog);
     }
     
-    public List<BreakLog> getBreakHistory() {
-        return breakLogRepository.findAllOrdered();
+    public List<BreakLog> getBreakHistory(User user) {
+        return breakLogRepository.findByUserOrderByCreatedAtDesc(user);
     }
     
-    public List<BreakLog> getTodayBreaks() {
-        return breakLogRepository.findTodayBreaks();
+    public List<BreakLog> getTodayBreaks(User user) {
+        LocalDateTime startOfDay = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime endOfDay = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+        return breakLogRepository.findByUserAndCreatedAtBetween(user, startOfDay, endOfDay);
+    }
+    
+    // Methods for handling anonymous/unauthenticated users
+    public Map<String, WellnessReminderDTO> getAnonymousReminders(String sessionId) {
+        return anonymousReminders.getOrDefault(sessionId, createDefaultAnonymousReminders());
+    }
+    
+    public Map<String, WellnessReminderDTO> updateAnonymousReminders(String sessionId, Map<String, WellnessReminderDTO> reminders) {
+        anonymousReminders.put(sessionId, reminders);
+        return reminders;
+    }
+    
+    private Map<String, WellnessReminderDTO> createDefaultAnonymousReminders() {
+        Map<String, WellnessReminderDTO> defaultReminders = new HashMap<>();
+        
+        // Create default eye rest reminder
+        WellnessReminderDTO eyeRest = new WellnessReminderDTO();
+        eyeRest.setType(WellnessReminder.ReminderType.EYE_REST);
+        eyeRest.setEnabled(true);
+        eyeRest.setInterval(20); // 20 minutes
+        eyeRest.setDuration(20); // 20 seconds
+        eyeRest.setSoundEnabled(true);
+        defaultReminders.put("eyeRest", eyeRest);
+        
+        // Create default posture reminder
+        WellnessReminderDTO posture = new WellnessReminderDTO();
+        posture.setType(WellnessReminder.ReminderType.POSTURE);
+        posture.setEnabled(true);
+        posture.setInterval(30); // 30 minutes
+        posture.setDuration(10); // 10 seconds
+        posture.setSoundEnabled(true);
+        defaultReminders.put("posture", posture);
+        
+        // Create default break reminder
+        WellnessReminderDTO breakReminder = new WellnessReminderDTO();
+        breakReminder.setType(WellnessReminder.ReminderType.BREAK);
+        breakReminder.setEnabled(true);
+        breakReminder.setInterval(60); // 60 minutes
+        breakReminder.setDuration(120); // 2 minutes
+        breakReminder.setSoundEnabled(true);
+        defaultReminders.put("break", breakReminder);
+        
+        return defaultReminders;
     }
 }

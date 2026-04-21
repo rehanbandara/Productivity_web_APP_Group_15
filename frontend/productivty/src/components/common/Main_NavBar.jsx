@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import { NavLink as RouterNavLink, useLocation } from "react-router-dom";
+import { NavLink as RouterNavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 /* =========================================================
    UI CUSTOMIZATION (Main_NavBar)
@@ -26,14 +27,21 @@ const TYPO = {
 
 function Main_NavBar({ brand = "Productivity", rightSlot = null }) {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { logout, isAuthenticated } = useAuth();
 
     const links = [
         { label: "Task Management", to: "/planner" },
         { label: "NotePad", to: "/notepad" }, // (route not created yet; you can add later)
         { label: "Focus&Wellness", to: "/f" },
-        { label: "Files", to: "/f" },
+        { label: "Files", to: "/files" },
         { label: "Settings", to: "/settings" },
     ];
+
+    const handleLogout = async () => {
+        await logout();
+        navigate('/');
+    };
 
     return (
         <Paper
@@ -95,6 +103,27 @@ function Main_NavBar({ brand = "Productivity", rightSlot = null }) {
                                 </Button>
                             );
                         })}
+                        {isAuthenticated && (
+                            <Button
+                                onClick={handleLogout}
+                                variant="text"
+                                sx={(theme) => ({
+                                    color: theme.custom.colors.error,
+                                    fontWeight: TYPO.linkFontWeight,
+                                    textTransform: TYPO.linkTextTransform,
+                                    px: LAYOUT.linkPx,
+                                    borderRadius: theme.custom.radius.md,
+                                    "&:hover": {
+                                        bgcolor:
+                                            theme.palette.mode === "dark"
+                                                ? "rgba(244,67,54,0.08)"
+                                                : "rgba(244,67,54,0.06)",
+                                    },
+                                })}
+                            >
+                                Logout
+                            </Button>
+                        )}
                     </Stack>
                 </Stack>
 

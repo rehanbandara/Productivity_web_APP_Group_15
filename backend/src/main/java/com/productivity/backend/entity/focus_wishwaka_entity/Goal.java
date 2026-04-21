@@ -1,5 +1,6 @@
 package com.productivity.backend.entity.focus_wishwaka_entity;
 
+import com.productivity.backend.entity.user_entity.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -53,6 +54,10 @@ public class Goal {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
     
     public enum Priority {
         HIGH, MEDIUM, LOW

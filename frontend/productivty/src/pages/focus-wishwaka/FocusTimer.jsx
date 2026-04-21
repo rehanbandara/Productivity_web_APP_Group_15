@@ -57,9 +57,10 @@ const FocusTimer = () => {
   
   const intervalRef = useRef(null);
 
-  // Load settings from backend
+  // Load settings from backend first, then fallback to localStorage
   useEffect(() => {
-    const loadSettingsFromBackend = async () => {
+    const loadSettings = async () => {
+      // First, try to load from backend (highest priority since it's now working)
       try {
         const response = await fetch('http://localhost:8080/api/settings/timer');
         if (response.ok) {
@@ -82,47 +83,42 @@ const FocusTimer = () => {
             }
             
             console.log('DEBUG: Applied backend settings - workDuration:', newWorkDuration, 'breakDuration:', newBreakDuration);
-          }
-        } else {
-          // Fallback to localStorage if backend is not available
-          const savedSettings = localStorage.getItem('focusTimerSettings');
-          if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            const newWorkDuration = settings.workDuration || 25;
-            const newBreakDuration = settings.breakDuration || 5;
             
-            setWorkDuration(newWorkDuration);
-            setBreakDuration(newBreakDuration);
-            setTempWorkDuration(newWorkDuration);
-            setTempBreakDuration(newBreakDuration);
-            
-            if (!isRunning) {
-              setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
-            }
+            // Also save to localStorage for offline persistence
+            const settings = { workDuration: newWorkDuration, breakDuration: newBreakDuration };
+            localStorage.setItem('focusTimerSettings', JSON.stringify(settings));
+            return; // Skip localStorage fallback since backend worked
           }
         }
       } catch (error) {
         console.error('Error loading settings from backend:', error);
-        // Fallback to localStorage if backend is not available
-        const savedSettings = localStorage.getItem('focusTimerSettings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          const newWorkDuration = settings.workDuration || 25;
-          const newBreakDuration = settings.breakDuration || 5;
-          
-          setWorkDuration(newWorkDuration);
-          setBreakDuration(newBreakDuration);
-          setTempWorkDuration(newWorkDuration);
-          setTempBreakDuration(newBreakDuration);
-          
-          if (!isRunning) {
-            setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
-          }
+      }
+      
+      // Fallback to localStorage if backend failed
+      const savedSettings = localStorage.getItem('focusTimerSettings');
+      if (savedSettings) {
+        const localStorageSettings = JSON.parse(savedSettings);
+        console.log('DEBUG: Loaded settings from localStorage:', localStorageSettings);
+        
+        const newWorkDuration = localStorageSettings.workDuration || 25;
+        const newBreakDuration = localStorageSettings.breakDuration || 5;
+        
+        setWorkDuration(newWorkDuration);
+        setBreakDuration(newBreakDuration);
+        setTempWorkDuration(newWorkDuration);
+        setTempBreakDuration(newBreakDuration);
+        
+        // Update timeLeft only if timer is not running
+        if (!isRunning) {
+          setTimeLeft(isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
+          console.log('DEBUG: Updated timeLeft to:', isBreak ? newBreakDuration * 60 : newWorkDuration * 60);
         }
+        
+        console.log('DEBUG: Applied localStorage settings - workDuration:', newWorkDuration, 'breakDuration:', newBreakDuration);
       }
     };
 
-    loadSettingsFromBackend();
+    loadSettings();
   }, []);
 
   // Fetch recent completed sessions from API

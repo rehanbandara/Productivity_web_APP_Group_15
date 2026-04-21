@@ -3,6 +3,7 @@ package com.productivity.backend.service.focus_wishwaka_service;
 import com.productivity.backend.DTO.focus_wishwaka_DTO.TimerSessionDTO;
 import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
 import com.productivity.backend.entity.focus_wishwaka_entity.TimerSession;
+import com.productivity.backend.entity.user_entity.User;
 import com.productivity.backend.repository.focus_wishwaka_repository.TimerSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,8 +21,8 @@ public class TimerSessionService {
     
     private final TimerSessionRepository timerSessionRepository;
     
-    public TimerSessionDTO getCurrentSession() {
-        TimerSession runningSession = timerSessionRepository.findRunningSession();
+    public TimerSessionDTO getCurrentSession(User user) {
+        TimerSession runningSession = timerSessionRepository.findRunningSession(user);
         if (runningSession != null) {
             return TimerSessionDTO.fromEntity(runningSession);
         }
@@ -39,13 +40,14 @@ public class TimerSessionService {
         return TimerSessionDTO.fromEntity(defaultSession);
     }
     
-    public TimerSessionDTO startSession(TimerSessionDTO sessionDTO) {
+    public TimerSessionDTO startSession(TimerSessionDTO sessionDTO, User user) {
         try {
             System.out.println("DEBUG: Starting new session with DTO: " + sessionDTO);
             
             TimerSession session = sessionDTO.toEntity();
             System.out.println("DEBUG: Converted to entity: " + session);
             
+            session.setUser(user);
             session.setStatus(TimerSession.SessionStatus.RUNNING);
             session.setIsRunning(true);
             session.setStartTime(LocalDateTime.now());
@@ -60,7 +62,6 @@ public class TimerSessionService {
             return TimerSessionDTO.fromEntity(savedSession);
         } catch (Exception e) {
             System.err.println("ERROR: Failed to start session: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to start session: " + e.getMessage(), e);
         }
     }
@@ -89,7 +90,7 @@ public class TimerSessionService {
         return TimerSessionDTO.fromEntity(updatedSession);
     }
     
-    public TimerSessionDTO completeSession(Long sessionId) {
+    public TimerSessionDTO completeSession(Long sessionId, User user) {
         try {
             System.out.println("DEBUG: Attempting to complete session with ID: " + sessionId);
             
@@ -117,20 +118,14 @@ public class TimerSessionService {
             session.setIsRunning(false);
             session.setCompletedAt(LocalDateTime.now());
             session.setCompletedSessions(true);
-            // TODO: Set actual user_id when authentication is implemented
-            session.setUserId(1L); // Default user for now
-            
-            System.out.println("DEBUG: About to save session with completedSessions: " + session.getCompletedSessions());
+            session.setUser(user);
             
             TimerSession updatedSession = timerSessionRepository.save(session);
-            
-            System.out.println("DEBUG: Successfully saved session. New ID: " + updatedSession.getId());
             System.out.println("DEBUG: completedSessions value: " + updatedSession.getCompletedSessions());
             
             return TimerSessionDTO.fromEntity(updatedSession);
         } catch (Exception e) {
             System.err.println("ERROR: Failed to complete session: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to complete session: " + e.getMessage(), e);
         }
     }
@@ -152,69 +147,72 @@ public class TimerSessionService {
                 .collect(Collectors.toList());
     }
     
-    public List<TimerSessionDTO> getRecentCompletedSessions(Long userId) {
-        List<TimerSession> sessions = timerSessionRepository.findRecentCompletedSessions(userId);
+    public List<TimerSessionDTO> getRecentCompletedSessions(User user) {
+        List<TimerSession> sessions = timerSessionRepository.findRecentCompletedSessions(user);
         return sessions.stream()
                 .limit(10) // Limit to last 10 sessions
                 .map(TimerSessionDTO::fromEntity)
                 .collect(Collectors.toList());
     }
     
-    public Long getCompletedSessionsCount(Long userId) {
-        return timerSessionRepository.countByUserIdAndCompletedSessions(userId, true);
+    public Long getCompletedSessionsCount(User user) {
+        return timerSessionRepository.countByUserAndCompletedSessions(user, true);
     }
     
-    public void storeRecentSessions(List<TimerSessionDTO> sessions) {
+    public void storeRecentSessions(List<TimerSessionDTO> sessions, User user) {
         for (TimerSessionDTO sessionDTO : sessions) {
             TimerSession session = sessionDTO.toEntity();
             session.setCreatedAt(LocalDateTime.now());
             session.setCompletedSessions(true);
-            session.setUserId(1L); // Default user for now
+            session.setUser(user);
             timerSessionRepository.save(session);
         }
     }
     
-    public StatsDTO getTodayStats() {
-        Long totalSessions = timerSessionRepository.getTodaySessionCount();
+    public StatsDTO getTodayStats(User user) {
+        Long totalSessions = timerSessionRepository.getTodaySessionCount(user);
         if (totalSessions == null) totalSessions = 0L;
         
-        Long completedSessions = timerSessionRepository.getTodaySessionCountByStatus(TimerSession.SessionStatus.COMPLETED);
+        Long completedSessions = timerSessionRepository.getTodaySessionCountByStatus(user, TimerSession.SessionStatus.COMPLETED);
         if (completedSessions == null) completedSessions = 0L;
         
-        Integer totalFocusTime = timerSessionRepository.getTodayTotalFocusTime();
+        Integer totalFocusTime = timerSessionRepository.getTodayTotalFocusTime(user);
         if (totalFocusTime == null) totalFocusTime = 0;
         
         Integer averageSessionLength = completedSessions > 0 ? totalFocusTime / completedSessions.intValue() : 0;
         Double completionRate = totalSessions > 0 ? (completedSessions.doubleValue() / totalSessions) * 100 : 0.0;
         
+        return createStatsDTO(totalSessions.intValue(), completedSessions.intValue(), totalFocusTime, averageSessionLength, completionRate);
+    }
+    
+    private StatsDTO createStatsDTO(Integer totalSessions, Integer completedSessions, Integer totalFocusTime, Integer averageSessionLength, Double completionRate) {
         StatsDTO stats = new StatsDTO();
-        stats.setTotalSessions(totalSessions.intValue());
-        stats.setCompletedSessions(completedSessions.intValue());
+        stats.setTotalSessions(totalSessions);
+        stats.setCompletedSessions(completedSessions);
         stats.setTotalFocusTime(totalFocusTime);
         stats.setAverageSessionLength(averageSessionLength);
         stats.setCompletionRate(completionRate);
-        
         return stats;
     }
     
-    public List<TimerSessionDTO> getTodaySessions() {
-        List<TimerSession> sessions = timerSessionRepository.findTodaySessions();
+    public List<TimerSessionDTO> getTodaySessions(User user) {
+        List<TimerSession> sessions = timerSessionRepository.findTodaySessions(user);
         return sessions.stream()
                 .map(TimerSessionDTO::fromEntity)
                 .collect(Collectors.toList());
     }
     
-    public List<TimerSessionDTO> getWeekSessions() {
+    public List<TimerSessionDTO> getWeekSessions(User user) {
         LocalDateTime weekStart = LocalDateTime.now().with(LocalTime.MIN).minusDays(LocalDateTime.now().getDayOfWeek().getValue() - 1);
-        List<TimerSession> sessions = timerSessionRepository.findWeekSessions(weekStart);
+        List<TimerSession> sessions = timerSessionRepository.findWeekSessions(user, weekStart);
         return sessions.stream()
                 .map(TimerSessionDTO::fromEntity)
                 .collect(Collectors.toList());
     }
     
-    public List<TimerSessionDTO> getMonthSessions() {
+    public List<TimerSessionDTO> getMonthSessions(User user) {
         LocalDateTime monthStart = LocalDateTime.now().withDayOfMonth(1).with(LocalTime.MIN);
-        List<TimerSession> sessions = timerSessionRepository.findMonthSessions(monthStart);
+        List<TimerSession> sessions = timerSessionRepository.findMonthSessions(user, monthStart);
         return sessions.stream()
                 .map(TimerSessionDTO::fromEntity)
                 .collect(Collectors.toList());

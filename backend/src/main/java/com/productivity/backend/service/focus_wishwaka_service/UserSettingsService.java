@@ -2,12 +2,15 @@ package com.productivity.backend.service.focus_wishwaka_service;
 
 import com.productivity.backend.DTO.focus_wishwaka_DTO.UserSettingsDTO;
 import com.productivity.backend.entity.focus_wishwaka_entity.UserSettings;
+import com.productivity.backend.entity.user_entity.User;
 import com.productivity.backend.repository.focus_wishwaka_repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -16,21 +19,24 @@ public class UserSettingsService {
     
     private final UserSettingsRepository userSettingsRepository;
     
-    public UserSettingsDTO getUserSettings() {
-        Optional<UserSettings> settings = userSettingsRepository.findFirstByOrderByIdAsc();
+    // In-memory storage for unauthenticated users
+    private final Map<String, UserSettingsDTO> anonymousSettings = new ConcurrentHashMap<>();
+    
+    public UserSettingsDTO getUserSettings(User user) {
+        Optional<UserSettings> settings = userSettingsRepository.findByUser(user);
         
         if (settings.isPresent()) {
             return UserSettingsDTO.fromEntity(settings.get());
         } else {
-            // Create default settings if none exist
-            UserSettings defaultSettings = createDefaultSettings();
+            // Create default settings if none exist for this user
+            UserSettings defaultSettings = createDefaultSettings(user);
             UserSettings savedSettings = userSettingsRepository.save(defaultSettings);
             return UserSettingsDTO.fromEntity(savedSettings);
         }
     }
     
-    public UserSettingsDTO updateSettings(UserSettingsDTO settingsDTO) {
-        Optional<UserSettings> existingSettings = userSettingsRepository.findFirstByOrderByIdAsc();
+    public UserSettingsDTO updateSettings(UserSettingsDTO settingsDTO, User user) {
+        Optional<UserSettings> existingSettings = userSettingsRepository.findByUser(user);
         
         UserSettings settings;
         if (existingSettings.isPresent()) {
@@ -38,16 +44,42 @@ public class UserSettingsService {
             updateSettingsFromDTO(settings, settingsDTO);
         } else {
             settings = settingsDTO.toEntity();
+            settings.setUser(user);
         }
         
         UserSettings savedSettings = userSettingsRepository.save(settings);
         return UserSettingsDTO.fromEntity(savedSettings);
     }
     
-    public UserSettingsDTO resetToDefaults() {
-        Optional<UserSettings> existingSettings = userSettingsRepository.findFirstByOrderByIdAsc();
+    // Methods for handling anonymous/unauthenticated users
+    public UserSettingsDTO getAnonymousSettings(String sessionId) {
+        return anonymousSettings.getOrDefault(sessionId, createDefaultAnonymousSettings());
+    }
+    
+    public UserSettingsDTO updateAnonymousSettings(String sessionId, UserSettingsDTO settingsDTO) {
+        anonymousSettings.put(sessionId, settingsDTO);
+        return settingsDTO;
+    }
+    
+    private UserSettingsDTO createDefaultAnonymousSettings() {
+        UserSettingsDTO defaultSettings = new UserSettingsDTO();
+        UserSettings.FocusSettings focus = new UserSettings.FocusSettings();
+        focus.setWorkDuration(25);
+        focus.setShortBreakDuration(5);
+        focus.setLongBreakDuration(15);
+        focus.setSessionsUntilLongBreak(4);
+        focus.setAutoStartBreaks(false);
+        focus.setAutoStartWork(false);
+        focus.setSoundEnabled(true);
+        focus.setVolume(0.5);
+        defaultSettings.setFocus(focus);
+        return defaultSettings;
+    }
+    
+    public UserSettingsDTO resetToDefaults(User user) {
+        Optional<UserSettings> existingSettings = userSettingsRepository.findByUser(user);
         
-        UserSettings defaultSettings = createDefaultSettings();
+        UserSettings defaultSettings = createDefaultSettings(user);
         
         if (existingSettings.isPresent()) {
             defaultSettings.setId(existingSettings.get().getId());
@@ -57,8 +89,9 @@ public class UserSettingsService {
         return UserSettingsDTO.fromEntity(savedSettings);
     }
     
-    private UserSettings createDefaultSettings() {
+    private UserSettings createDefaultSettings(User user) {
         UserSettings settings = new UserSettings();
+        settings.setUser(user);
         
         // Default focus settings
         UserSettings.FocusSettings focus = new UserSettings.FocusSettings();
