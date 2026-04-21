@@ -1,10 +1,5 @@
 package com.productivity.backend.repository.planner_rehan_repository;
 
-<<<<<<< HEAD
-public class TaskRepository {
-    
-}
-=======
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +16,3 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     // Optional (keep only if you still want legacy support):
     // List<Task> findByDeadline(String deadline);
 }
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6

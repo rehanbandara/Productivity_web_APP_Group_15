@@ -1,4 +1,4 @@
-package com.productivity.backend.DTO.focus_wishwaka_DTO;
+package com.productivity.backend.dto.focus_wishwaka_dto;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

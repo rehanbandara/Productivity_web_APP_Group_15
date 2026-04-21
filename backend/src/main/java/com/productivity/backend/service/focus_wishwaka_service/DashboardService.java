@@ -1,6 +1,6 @@
 package com.productivity.backend.service.focus_wishwaka_service;
 
-import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.StatsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -13,8 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
-    
+public class FocusWishwakaExceptionHandler {
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         ErrorResponse error = new ErrorResponse();
@@ -23,10 +23,10 @@ public class GlobalExceptionHandler {
         error.setError("Internal Server Error");
         error.setMessage(ex.getMessage());
         error.setPath("/api/error");
-        
+
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         ErrorResponse error = new ErrorResponse();
@@ -35,10 +35,10 @@ public class GlobalExceptionHandler {
         error.setError("Bad Request");
         error.setMessage(ex.getMessage());
         error.setPath("/api/error");
-        
+
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-    
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        
+
         ErrorResponse error = new ErrorResponse();
         error.setTimestamp(LocalDateTime.now());
         error.setStatus(HttpStatus.BAD_REQUEST.value());
@@ -55,10 +55,10 @@ public class GlobalExceptionHandler {
         error.setMessage("Validation failed for one or more fields");
         error.setValidationErrors(errors);
         error.setPath("/api/error");
-        
+
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-    
+
     @Data
     public static class ErrorResponse {
         private LocalDateTime timestamp;

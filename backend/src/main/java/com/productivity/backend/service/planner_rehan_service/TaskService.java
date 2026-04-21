@@ -1,10 +1,5 @@
 package com.productivity.backend.service.planner_rehan_service;
 
-<<<<<<< HEAD
-public class TaskService {
-    
-}
-=======
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,4 +39,3 @@ public class TaskService {
         return taskRepository.findByDeadlineDate(deadlineDate);
     }
 }
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6

@@ -1,10 +1,5 @@
 package com.productivity.backend.entity.planner_rehan_entity;
 
-<<<<<<< HEAD
-public class Task {
-    
-}
-=======
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,7 +21,8 @@ import lombok.Setter;
  * - Meta: priority, effort, category, notes, status
  *
  * NOTE:
- * - We keep dates/times as Strings for now to match your frontend ("YYYY-MM-DD", "HH:mm").
+ * - We keep dates/times as Strings for now to match your frontend
+ * ("YYYY-MM-DD", "HH:mm").
  * - Later you can migrate to LocalDate/LocalTime.
  */
 @Entity
@@ -67,7 +63,8 @@ public class Task {
 
     /**
      * Legacy field (optional).
-     * Keep it for backward compatibility with your current frontend payload (`deadline`).
+     * Keep it for backward compatibility with your current frontend payload
+     * (`deadline`).
      * You can remove this later once frontend fully uses deadlineDate/deadlineTime.
      */
     private String deadline;
@@ -97,6 +94,6 @@ public class Task {
      */
     private String status;
 
-    // Optional: if you later want to persist your analysis fields, add them here too.
+    // Optional: if you later want to persist your analysis fields, add them here
+    // too.
 }
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6

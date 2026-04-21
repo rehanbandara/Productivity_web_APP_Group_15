@@ -1,7 +1,7 @@
 package com.productivity.backend.service.focus_wishwaka_service;
 
-import com.productivity.backend.DTO.focus_wishwaka_DTO.WellnessReminderDTO;
-import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.WellnessReminderDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.StatsDTO;
 import com.productivity.backend.entity.focus_wishwaka_entity.WellnessReminder;
 import com.productivity.backend.entity.focus_wishwaka_entity.BreakLog;
 import com.productivity.backend.repository.focus_wishwaka_repository.WellnessReminderRepository;

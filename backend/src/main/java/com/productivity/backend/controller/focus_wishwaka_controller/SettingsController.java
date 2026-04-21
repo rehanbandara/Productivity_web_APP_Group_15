@@ -1,6 +1,6 @@
 package com.productivity.backend.controller.focus_wishwaka_controller;
 
-import com.productivity.backend.DTO.focus_wishwaka_DTO.UserSettingsDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.UserSettingsDTO;
 import com.productivity.backend.service.focus_wishwaka_service.UserSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

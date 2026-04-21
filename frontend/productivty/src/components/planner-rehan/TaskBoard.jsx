@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Box, Divider, Paper, Stack, Typography } from "@mui/material";
+import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import TaskCard from "./TaskCard";
 import useTaskStore from "../../store/taskStore";

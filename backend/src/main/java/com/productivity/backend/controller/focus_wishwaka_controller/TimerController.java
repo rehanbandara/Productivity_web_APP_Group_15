@@ -1,7 +1,7 @@
 package com.productivity.backend.controller.focus_wishwaka_controller;
 
-import com.productivity.backend.DTO.focus_wishwaka_DTO.TimerSessionDTO;
-import com.productivity.backend.DTO.focus_wishwaka_DTO.StatsDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.TimerSessionDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.StatsDTO;
 import com.productivity.backend.service.focus_wishwaka_service.TimerSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

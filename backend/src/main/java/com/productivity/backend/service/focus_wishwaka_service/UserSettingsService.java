@@ -1,6 +1,6 @@
 package com.productivity.backend.service.focus_wishwaka_service;
 
-import com.productivity.backend.DTO.focus_wishwaka_DTO.UserSettingsDTO;
+import com.productivity.backend.dto.focus_wishwaka_dto.UserSettingsDTO;
 import com.productivity.backend.entity.focus_wishwaka_entity.UserSettings;
 import com.productivity.backend.repository.focus_wishwaka_repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;

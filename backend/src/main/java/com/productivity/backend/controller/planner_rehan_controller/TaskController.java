@@ -1,10 +1,5 @@
 package com.productivity.backend.controller.planner_rehan_controller;
 
-<<<<<<< HEAD
-public class TaskController {
-    
-}
-=======
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,24 +12,26 @@ import com.productivity.backend.service.planner_rehan_service.TaskService;
  * TaskController (REST API)
  * ------------------------
  * What is a REST API?
- * - REST API is a way for the frontend (React) to communicate with the backend (Spring Boot)
- *   using HTTP requests (GET, POST, PUT, DELETE).
+ * - REST API is a way for the frontend (React) to communicate with the backend
+ * (Spring Boot)
+ * using HTTP requests (GET, POST, PUT, DELETE).
  *
  * Common HTTP methods:
- * - GET    : Read data (fetch tasks)
- * - POST   : Create new data (add a new task)
- * - PUT    : Update existing data (edit a task)
+ * - GET : Read data (fetch tasks)
+ * - POST : Create new data (add a new task)
+ * - PUT : Update existing data (edit a task)
  * - DELETE : Delete data (remove a task)
  *
  * Key annotations:
  * - @RestController:
- *   Marks this class as a REST controller. Methods return JSON/text directly.
+ * Marks this class as a REST controller. Methods return JSON/text directly.
  *
  * - @RequestMapping("/api/tasks"):
- *   Sets a base URL for all endpoints in this controller.
+ * Sets a base URL for all endpoints in this controller.
  *
  * - @CrossOrigin:
- *   Allows your React frontend (running on a different port like 3000) to call these endpoints.
+ * Allows your React frontend (running on a different port like 3000) to call
+ * these endpoints.
  */
 @RestController
 @RequestMapping("/api/tasks")
@@ -105,4 +102,3 @@ public class TaskController {
         return taskService.getTasksByDeadline(deadline);
     }
 }
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6
