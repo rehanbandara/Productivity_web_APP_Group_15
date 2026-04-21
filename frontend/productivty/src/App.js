@@ -1,68 +1,34 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import logo from './logo.svg';
-import './App.css';
-
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-=======
-import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
-
-import Dashboard from "./pages/planner-rehan/Dashboard";
-
-
-function App() {
-  return (
-    <Routes>
-      {/* Redirect root to planner */}
-      <Route path="/" element={<Navigate to="/planner" replace />} />
-
-      {/* Pages */}
-      <Route path="/planner" element={<Dashboard />} />
-      
-
-      {/* fallback */}
-      <Route path="*" element={<Navigate to="/planner" replace />} />
-    </Routes>
->>>>>>> 7114386843f3923f6d6062fec78eab55fddcd2f6
-=======
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import Box from '@mui/material/Box';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
+
+// Smart Notes
+import DashboardPage from './pages/DashboardPage';
+import NotesPage from './pages/notes-chamod/NotesPage';
+import NoteEditorPage from './pages/notes-chamod/NoteEditorPage';
+import TopicsPage from './pages/notes-chamod/TopicsPage';
+import TagsPage from './pages/notes-chamod/TagsPage';
+
+// Other Features
+import VideoNotesPage from './pages/VideoNotesPage';
+import FlashcardsPage from './pages/FlashcardsPage';
+import QuizzesPage from './pages/QuizzesPage';
+
+// Focus System
 import Sidebar from './components/focus-wishwaka/Sidebar';
-import Dashboard from './pages/focus-wishwaka/Dashboard';
 import Goals from './pages/focus-wishwaka/Goals';
 import FocusTimer from './pages/focus-wishwaka/FocusTimer';
 import Wellness from './pages/focus-wishwaka/Wellness';
-import Settings from './pages/focus-wishwaka/Settings';
+
+// Settings
+import SettingsPage from './pages/SettingsPage';
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#2c3e50',
-    },
-    secondary: {
-      main: '#3498db',
-    },
+    mode: 'light',
+    primary: { main: '#6366f1' },
+    secondary: { main: '#3498db' },
+    background: { default: '#f8fafc' },
   },
 });
 
@@ -70,30 +36,51 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+
       <Router>
         <Box sx={{ display: 'flex' }}>
+          
+          {/* Sidebar */}
           <Sidebar />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              width: { md: `calc(100% - 240px)` },
-            }}
-          >
+
+          {/* Main Content */}
+          <Box sx={{ flexGrow: 1, p: 3 }}>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Default */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+              {/* Dashboard */}
+              <Route path="/dashboard" element={<DashboardPage />} />
+
+              {/* Notes */}
+              <Route path="/notes" element={<NotesPage />} />
+              <Route path="/notes/new" element={<NoteEditorPage isNew />} />
+              <Route path="/notes/:id" element={<NoteEditorPage />} />
+              <Route path="/topics" element={<TopicsPage />} />
+              <Route path="/tags" element={<TagsPage />} />
+
+              {/* Learning */}
+              <Route path="/video-notes" element={<VideoNotesPage />} />
+              <Route path="/flashcards" element={<FlashcardsPage />} />
+              <Route path="/quizzes" element={<QuizzesPage />} />
+
+              {/* Focus */}
               <Route path="/goals" element={<Goals />} />
               <Route path="/focus-timer" element={<FocusTimer />} />
               <Route path="/wellness" element={<Wellness />} />
-              <Route path="/settings" element={<Settings />} />
+
+              {/* Settings */}
+              <Route path="/settings" element={<SettingsPage />} />
+
+              {/* fallback */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
             </Routes>
           </Box>
         </Box>
       </Router>
     </ThemeProvider>
->>>>>>> focus-wellness
   );
 }
 

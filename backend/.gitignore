@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+.fake
+.env
+backend/src/main/resources/application.properties
