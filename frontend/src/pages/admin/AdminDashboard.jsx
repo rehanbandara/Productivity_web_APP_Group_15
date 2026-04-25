@@ -41,7 +41,7 @@ export default function AdminDashboard() {
         getAllTickets(),
       ])
 
-      setUserCount(uRes.data.length)
+      setUserCount(uRes?.data?.length || 0)
       setPendingBookings(bPending.data.slice(0, 5))
       setBookingCount(bAll.data.length)
       setResourceCount(rRes.data.length)
