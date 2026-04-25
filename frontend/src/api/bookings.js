@@ -6,7 +6,7 @@ import api from './axios'
 const BASE = '/bookings'
 const FULL_BASE = 'http://localhost:8080/api'
 
-// Create a new booking request
+// Create a new booking requests
 export const createBooking = (bookingData) =>
   api.post(BASE, bookingData, { baseURL: FULL_BASE })
 
