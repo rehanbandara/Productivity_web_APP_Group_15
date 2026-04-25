@@ -16,7 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-
+// Status metadata for display purposes
 const STATUS_META = {
   PENDING:   { label: 'Pending review', pill: 'bg-amber-400/15 text-amber-200 border border-amber-300/20' },
   APPROVED:  { label: 'Approved',       pill: 'bg-emerald-400/15 text-emerald-200 border border-emerald-300/20' },

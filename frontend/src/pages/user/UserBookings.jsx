@@ -19,7 +19,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-
+// Placeholder image for resources without photos (e.g., lecture halls)
 const LECTURE_HALL_IMG = '/src/assets/lecture_hall.jpg'
 
 const STATUS_META = {
