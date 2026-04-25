@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       setPendingBookings(bPending.data.slice(0, 5))
       setBookingCount(bAll.data.length)
       setResourceCount(rRes.data.length)
-      setOpenTicketCount(tRes.data.filter(t => t.status === 'OPEN').length)
+      setOpenTicketCount(tRes.data.filter(t.status === 'OPEN').length)
     } catch {
       toast.error('Error fetching dashboard data')
     } finally {
