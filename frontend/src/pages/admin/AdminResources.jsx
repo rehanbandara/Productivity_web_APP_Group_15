@@ -55,7 +55,7 @@ export default function AdminResources() {
     try {
       setLoading(true)
       const res = await getAllResources()
-      setResources(res.data)
+      setResources(res?.data || [])
     } catch {
       toast.error('Failed to load resources')
     } finally {
