@@ -1,0 +1,39 @@
+CREATE TABLE tasks (
+    id INT PRIMARY KEY,
+    category VARCHAR(50),
+    deadline DATE,
+    deadline_date DATE,
+    deadline_time VARCHAR(10),
+    effort INT,
+    end_time VARCHAR(10),
+    importance INT,
+    notes TEXT,
+    planned_date DATE,
+    priority VARCHAR(20),
+    start_time VARCHAR(10),
+    status VARCHAR(20),
+    title VARCHAR(100)
+);
+
+
+INSERT INTO tasks (id, category, deadline, deadline_date, deadline_time, effort, end_time, importance, notes, planned_date, priority, start_time, status, title) VALUES
+(1, 'Testing', '2026-04-09', '2026-04-09', '03:00', 3, '15:00', 4, '// this is for', '2026-04-08', 'normal', '14:00', 'todo', 'Testi1'),
+(4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-09', 'normal', NULL, 'in-progress', 'Test9'),
+(5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-07', 'normal', NULL, 'todo', 'test7'),
+(6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-08', 'normal', NULL, 'in-progress', 'Test'),
+(7, 'study', '2026-04-22', '2026-04-22', '03:00', 4, '03:00', 4, 'dfadsgdgfdgdfgfdg\n\nsgsfg\n\ngfdggf', '2026-04-08', 'normal', '01:00', 'done', 'twesfd'),
+(8, 'Presentation', '2026-04-10', '2026-04-10', '20:00', 12, '19:20', 1, '// Progress 2 Presentation', '2026-04-10', 'normal', '18:00', 'todo', 'ITMP'),
+(9, 'Quiz', NULL, NULL, NULL, NULL, NULL, NULL, '15% of the CA marks', '2026-04-10', 'normal', NULL, 'in-progress', 'NDM'),
+(10, 'Test', '2026-04-10', '2026-04-10', NULL, 1, NULL, 5, NULL, '2026-04-10', 'normal', NULL, 'todo', 'DS Lab Test'),
+(11, 'Study', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-10', 'normal', NULL, 'done', 'Example01'),
+(12, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-10', 'normal', NULL, 'done', 'Example02'),
+(13, NULL, '2026-04-16', '2026-04-16', NULL, NULL, NULL, 10, NULL, '2026-04-10', 'normal', NULL, 'done', 'Example04'),
+(14, 'Study', '2026-04-10', '2026-04-10', NULL, 12, NULL, 1, NULL, '2026-04-10', 'normal', NULL, 'todo', 'Example05'),
+(15, 'fsdf', '2026-04-09', '2026-04-09', '02:00', 1, '17:00', 4, NULL, '2026-04-09', 'normal', '03:15', 'todo', 'labjabejkfa'),
+(16, NULL, '2026-04-10', '2026-04-10', NULL, 24, NULL, 1, NULL, '2026-04-09', 'normal', NULL, 'todo', 'Ttt'),
+(17, 'quiz', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-04-11', 'normal', NULL, 'todo', 'LAbtest');
+
+
+SELECT * FROM tasks;
+USE productivity_db;
+
